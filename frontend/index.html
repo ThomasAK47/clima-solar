@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <title>Clima Solar — GNSS</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0d1117;
+      --card:        #161b22;
+      --border:      #30363d;
+      --text:        #e6edf3;
+      --dim:         #8b949e;
+      --accent:      #58a6ff;
+
+      --green:       #2ea043;
+      --green-bg:    #0a1f0e;
+      --green-glow:  rgba(46, 160, 67, 0.18);
+      --green-border:#1a4d22;
+
+      --yellow:      #d29922;
+      --yellow-bg:   #1f1500;
+      --yellow-glow: rgba(210, 153, 34, 0.18);
+      --yellow-border:#4d3800;
+
+      --red:         #f85149;
+      --red-bg:      #1f0808;
+      --red-glow:    rgba(248, 81, 73, 0.18);
+      --red-border:  #4d1010;
+
+      --radius:  14px;
+      --radius-s: 10px;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Screens ─────────────────────────────────────────────────────────── */
+    .screen {
+      display: none;
+      min-height: 100dvh;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px 40px;
+    }
+    .screen.active { display: flex; }
+
+    /* ── Loading ─────────────────────────────────────────────────────────── */
+    #screen-loading { gap: 18px; }
+    #loading-icon {
+      color: var(--dim);
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); opacity: .5; }
+      50%       { transform: translateY(-6px); opacity: 1; }
+    }
+    #loading-text { color: var(--dim); font-size: 15px; }
+
+    /* ── Error screens ───────────────────────────────────────────────────── */
+    .err-screen { gap: 14px; text-align: center; max-width: 320px; }
+    .err-icon   { color: var(--dim); margin-bottom: 4px; }
+    .err-screen h2 { font-size: 19px; font-weight: 600; }
+    .err-screen p  { color: var(--dim); font-size: 14px; line-height: 1.55; }
+
+    .btn {
+      margin-top: 6px;
+      padding: 10px 26px;
+      border-radius: var(--radius-s);
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 14px;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+    }
+    .btn:hover { background: #1f2937; border-color: #6e7681; }
+    .btn:active { transform: scale(.97); }
+
+    /* ── App screen ──────────────────────────────────────────────────────── */
+    #screen-app {
+      justify-content: flex-start;
+      gap: 14px;
+      max-width: 480px;
+      width: 100%;
+      padding-top: 20px;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding-bottom: 4px;
+    }
+    .logo-icon { color: var(--accent); flex-shrink: 0; }
+    header h1  { font-size: 21px; font-weight: 700; letter-spacing: -.3px; }
+    header p   { font-size: 12px; color: var(--dim); margin-top: 1px; }
+
+    /* ── Risk card ───────────────────────────────────────────────────────── */
+    #risk-card {
+      width: 100%;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 28px 22px 22px;
+      text-align: center;
+      background: var(--card);
+      transition: background .5s, border-color .5s, box-shadow .5s;
+    }
+    #risk-card.low    { background: var(--green-bg);  border-color: var(--green-border);  box-shadow: 0 0 40px var(--green-glow);  }
+    #risk-card.medium { background: var(--yellow-bg); border-color: var(--yellow-border); box-shadow: 0 0 40px var(--yellow-glow); }
+    #risk-card.high   { background: var(--red-bg);    border-color: var(--red-border);    box-shadow: 0 0 40px var(--red-glow);    }
+
+    #risk-icon-wrap { margin-bottom: 14px; }
+
+    #risk-label {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      transition: color .4s;
+    }
+    .low    #risk-label { color: var(--green);  }
+    .medium #risk-label { color: var(--yellow); }
+    .high   #risk-label { color: var(--red);    }
+
+    #risk-desc {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--dim);
+      line-height: 1.5;
+    }
+
+    /* score bar */
+    .score-wrap { margin-top: 20px; }
+    .score-track {
+      height: 5px;
+      background: rgba(255,255,255,.07);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    #score-fill {
+      height: 100%;
+      border-radius: 3px;
+      width: 0%;
+      transition: width .7s ease, background .5s;
+    }
+    .low    #score-fill { background: var(--green);  }
+    .medium #score-fill { background: var(--yellow); }
+    .high   #score-fill { background: var(--red);    }
+    #score-text {
+      margin-top: 7px;
+      font-size: 12px;
+      color: var(--dim);
+    }
+
+    /* ── Indicator grid ──────────────────────────────────────────────────── */
+    #indicators {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .ind-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 15px 15px 13px;
+    }
+    .ind-name {
+      font-size: 11px;
+      color: var(--dim);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: 5px;
+    }
+    .ind-value {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -.5px;
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+    .ind-unit {
+      font-size: 11px;
+      color: var(--dim);
+      margin-bottom: 10px;
+    }
+    .ind-bar-track {
+      height: 4px;
+      background: rgba(255,255,255,.07);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .ind-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width .7s ease, background .4s;
+    }
+    .ind-bar-fill.low    { background: var(--green);  }
+    .ind-bar-fill.medium { background: var(--yellow); }
+    .ind-bar-fill.high   { background: var(--red);    }
+    .ind-bar-fill.na     { background: var(--border); }
+
+    /* ── Data age note ───────────────────────────────────────────────────── */
+    #data-note {
+      width: 100%;
+      font-size: 12px;
+      color: var(--dim);
+      text-align: center;
+      opacity: 0;
+      transition: opacity .3s;
+      line-height: 1.4;
+    }
+    #data-note.visible { opacity: 1; }
+
+    /* ── Footer ──────────────────────────────────────────────────────────── */
+    footer {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 2px;
+    }
+    #update-time { font-size: 13px; color: var(--dim); }
+    #loc-text    { font-size: 12px; color: var(--dim); opacity: .6; }
+
+    #refresh-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      border-radius: var(--radius-s);
+      padding: 6px 13px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    #refresh-btn:hover { border-color: #6e7681; color: var(--text); }
+    #refresh-btn.spinning .spin-icon { animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Stars bg (pure CSS, no images) ─────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 10%  15%, rgba(255,255,255,.25) 0%, transparent 100%),
+        radial-gradient(1px 1px at 25%  60%, rgba(255,255,255,.15) 0%, transparent 100%),
+        radial-gradient(1px 1px at 50%  10%, rgba(255,255,255,.2)  0%, transparent 100%),
+        radial-gradient(1px 1px at 70%  40%, rgba(255,255,255,.25) 0%, transparent 100%),
+        radial-gradient(1px 1px at 85%  75%, rgba(255,255,255,.15) 0%, transparent 100%),
+        radial-gradient(1px 1px at 40%  85%, rgba(255,255,255,.2)  0%, transparent 100%),
+        radial-gradient(1px 1px at 60%  55%, rgba(255,255,255,.15) 0%, transparent 100%),
+        radial-gradient(1px 1px at 90%  20%, rgba(255,255,255,.2)  0%, transparent 100%),
+        radial-gradient(1px 1px at 15%  90%, rgba(255,255,255,.1)  0%, transparent 100%),
+        radial-gradient(1px 1px at 78%  8%,  rgba(255,255,255,.2)  0%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .screen { position: relative; z-index: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     LOADING
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="screen-loading" class="screen active">
+  <svg id="loading-icon" width="72" height="72" viewBox="0 0 24 24" fill="none">
+    <rect x="8.5" y="8.5" width="7" height="7" rx="1.2" fill="currentColor"/>
+    <rect x="1" y="10" width="6.5" height="4" rx="1" fill="currentColor" opacity=".55"/>
+    <rect x="16.5" y="10" width="6.5" height="4" rx="1" fill="currentColor" opacity=".55"/>
+    <line x1="12" y1="8.5" x2="12" y2="4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    <circle cx="12" cy="3.5" r="1.5" fill="currentColor"/>
+    <path d="M14.5 6 Q17 3.5 14.5 1" stroke="currentColor" stroke-width="1" fill="none" opacity=".45" stroke-linecap="round"/>
+    <path d="M16 7 Q20 3.5 16 0" stroke="currentColor" stroke-width="1" fill="none" opacity=".25" stroke-linecap="round"/>
+    <line x1="12" y1="15.5" x2="12" y2="19.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    <circle cx="12" cy="20.5" r="1.5" fill="currentColor" opacity=".5"/>
+  </svg>
+  <p id="loading-text">Obtendo sua localização…</p>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     GEOLOCATION ERROR
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="screen-geo-error" class="screen err-screen">
+  <svg class="err-icon" width="58" height="58" viewBox="0 0 24 24" fill="none">
+    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+          stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle cx="12" cy="9" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+    <line x1="16" y1="2" x2="22" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="22" y1="2" x2="16" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>
+  <h2>Localização necessária</h2>
+  <p>Permita o acesso à sua localização para monitorar o clima espacial na sua região.</p>
+  <button class="btn" onclick="startApp()">Tentar novamente</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     API ERROR
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="screen-api-error" class="screen err-screen">
+  <svg class="err-icon" width="58" height="58" viewBox="0 0 24 24" fill="none">
+    <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/>
+    <line x1="2" y1="10" x2="22" y2="10" stroke="currentColor" stroke-width="1.5"/>
+    <circle cx="6" cy="8" r="1" fill="currentColor"/>
+    <circle cx="9.5" cy="8" r="1" fill="currentColor"/>
+    <line x1="9" y1="14" x2="15" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="19" y1="3" x2="5" y2="21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>
+  <h2>Serviço temporariamente indisponível</h2>
+  <p>Não foi possível conectar ao servidor de clima espacial. Verifique sua conexão.</p>
+  <button class="btn" onclick="doFetch()">Tentar novamente</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     APP
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="screen-app" class="screen">
+
+  <!-- Header -->
+  <header>
+    <svg class="logo-icon" width="38" height="38" viewBox="0 0 24 24" fill="none">
+      <rect x="8.5" y="8.5" width="7" height="7" rx="1.2" fill="currentColor"/>
+      <rect x="1" y="10" width="6.5" height="4" rx="1" fill="currentColor" opacity=".55"/>
+      <rect x="16.5" y="10" width="6.5" height="4" rx="1" fill="currentColor" opacity=".55"/>
+      <line x1="12" y1="8.5" x2="12" y2="4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+      <circle cx="12" cy="3.5" r="1.5" fill="currentColor"/>
+      <path d="M14.5 6 Q17 3.5 14.5 1" stroke="currentColor" stroke-width="1" fill="none" opacity=".45" stroke-linecap="round"/>
+      <path d="M16 7 Q20 3.5 16 0" stroke="currentColor" stroke-width="1" fill="none" opacity=".25" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <h1>Clima Solar</h1>
+      <p>Monitoramento de Clima Solar</p>
+    </div>
+  </header>
+
+  <!-- Risk card -->
+  <div id="risk-card">
+    <div id="risk-icon-wrap">
+      <!-- replaced by JS -->
+    </div>
+    <div id="risk-label">—</div>
+    <div id="risk-desc">Carregando dados…</div>
+    <div class="score-wrap">
+      <div class="score-track"><div id="score-fill"></div></div>
+      <div id="score-text">Score composto: —</div>
+    </div>
+  </div>
+
+  <!-- Indicator cards -->
+  <div id="indicators">
+
+    <div class="ind-card">
+      <div class="ind-name">Índice Kp</div>
+      <div class="ind-value" id="val-kp">—</div>
+      <div class="ind-unit">escala 0 – 9</div>
+      <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-kp" style="width:0%"></div></div>
+    </div>
+
+    <div class="ind-card">
+      <div class="ind-name">Dst</div>
+      <div class="ind-value" id="val-dst">—</div>
+      <div class="ind-unit">nanoTesla (nT)</div>
+      <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-dst" style="width:0%"></div></div>
+    </div>
+
+    <div class="ind-card">
+      <div class="ind-name">S4 — Cintilação</div>
+      <div class="ind-value" id="val-s4">—</div>
+      <div class="ind-unit">amplitude (0 – 1)</div>
+      <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-s4" style="width:0%"></div></div>
+    </div>
+
+    <div class="ind-card">
+      <div class="ind-name">F10.7</div>
+      <div class="ind-value" id="val-f107">—</div>
+      <div class="ind-unit">fluxo solar (sfu)</div>
+      <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-f107" style="width:0%"></div></div>
+    </div>
+
+  </div>
+
+  <!-- Data age note -->
+  <div id="data-note"></div>
+
+  <!-- Footer -->
+  <footer>
+    <div>
+      <div id="update-time">Aguardando dados…</div>
+      <div id="loc-text"></div>
+    </div>
+    <button id="refresh-btn" onclick="doFetch()">
+      <svg class="spin-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M21 12a9 9 0 11-6.219-8.56" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      Atualizar
+    </button>
+  </footer>
+
+</div><!-- /screen-app -->
+
+<script>
+'use strict';
+
+// ── Config ────────────────────────────────────────────────────────────────────
+// Em produção, substitua pelo valor real ou defina window.CLIMA_SOLAR_API antes deste script.
+// Ex: https://climasolar.up.railway.app
+const API = (typeof window.CLIMA_SOLAR_API !== 'undefined')
+  ? window.CLIMA_SOLAR_API.replace(/\/$/, '')
+  : 'http://localhost:8000';
+const AUTO_REFRESH_MS = 5 * 60 * 1000; // 5 min
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let userLat = null;
+let userLon = null;
+let autoTimer = null;
+
+// ── Risk level definitions ────────────────────────────────────────────────────
+const LEVELS = {
+  low: {
+    label: 'BAIXO',
+    desc:  'Condições favoráveis para operações GNSS',
+    cls:   'low',
+    icon:  `<svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+              <circle cx="26" cy="26" r="24" fill="var(--green-bg)" stroke="var(--green)" stroke-width="2"/>
+              <path d="M15 26l8 8 14-16" stroke="var(--green)" stroke-width="3" fill="none"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>`,
+  },
+  medium: {
+    label: 'MÉDIO',
+    desc:  'Atenção: possíveis interferências no GNSS',
+    cls:   'medium',
+    icon:  `<svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+              <path d="M26 6 L48 44 H4 Z" fill="var(--yellow-bg)" stroke="var(--yellow)"
+                    stroke-width="2" stroke-linejoin="round"/>
+              <line x1="26" y1="20" x2="26" y2="32" stroke="var(--yellow)" stroke-width="3"
+                    stroke-linecap="round"/>
+              <circle cx="26" cy="38" r="2.5" fill="var(--yellow)"/>
+            </svg>`,
+  },
+  high: {
+    label: 'ALTO',
+    desc:  'Evite operações críticas com GNSS',
+    cls:   'high',
+    icon:  `<svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+              <circle cx="26" cy="26" r="24" fill="var(--red-bg)" stroke="var(--red)" stroke-width="2"/>
+              <path d="M17 17 L35 35 M35 17 L17 35" stroke="var(--red)" stroke-width="3"
+                    fill="none" stroke-linecap="round"/>
+            </svg>`,
+  },
+};
+
+// ── Screen management ─────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Geolocation ───────────────────────────────────────────────────────────────
+async function startApp() {
+  showScreen('screen-loading');
+  document.getElementById('loading-text').textContent = 'Obtendo sua localização…';
+
+  if (!navigator.geolocation) {
+    showScreen('screen-geo-error');
+    return;
+  }
+
+  try {
+    const pos = await new Promise((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        timeout: 12000,
+        maximumAge: 120000,
+        enableHighAccuracy: false,
+      })
+    );
+    userLat = pos.coords.latitude;
+    userLon = pos.coords.longitude;
+
+    document.getElementById('loading-text').textContent = 'Carregando dados de clima espacial…';
+    await doFetch();
+    scheduleAutoRefresh();
+  } catch (err) {
+    console.warn('Geolocation error:', err);
+    showScreen('screen-geo-error');
+  }
+}
+
+// ── Fetch ─────────────────────────────────────────────────────────────────────
+async function doFetch() {
+  if (!userLat || !userLon) {
+    await startApp();
+    return;
+  }
+
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+
+  try {
+    const url = `${API}/status?lat=${userLat.toFixed(5)}&lon=${userLon.toFixed(5)}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+
+    // Server still warming up
+    if (data.status === 'initializing') {
+      document.getElementById('loading-text').textContent =
+        'Servidor iniciando, aguarde…';
+      showScreen('screen-loading');
+      setTimeout(doFetch, 6000);
+      return;
+    }
+
+    render(data);
+    showScreen('screen-app');
+  } catch (err) {
+    console.error('Fetch error:', err);
+    showScreen('screen-api-error');
+  } finally {
+    btn.classList.remove('spinning');
+  }
+}
+
+// ── Auto-refresh ──────────────────────────────────────────────────────────────
+function scheduleAutoRefresh() {
+  clearInterval(autoTimer);
+  autoTimer = setInterval(doFetch, AUTO_REFRESH_MS);
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render(data) {
+  const lvlKey = (data.risk && data.risk.level) || 'low';
+  const lvl    = LEVELS[lvlKey] || LEVELS.low;
+  const score  = (data.risk && data.risk.score) || 0;
+  const raw    = data.raw || {};
+  const age    = data.data_age || {};
+
+  // ── Risk card
+  const card = document.getElementById('risk-card');
+  card.className = lvl.cls;
+  document.getElementById('risk-icon-wrap').innerHTML = lvl.icon;
+  document.getElementById('risk-label').textContent   = lvl.label;
+  document.getElementById('risk-desc').textContent    = lvl.desc;
+  document.getElementById('score-fill').style.width   = `${Math.round(score * 100)}%`;
+  document.getElementById('score-text').textContent   =
+    `Score composto: ${score.toFixed(2)} de 1.00`;
+
+  // ── Indicator cards
+  setInd('kp',   raw.kp,       v => v.toFixed(1),         kpLvl(raw.kp),   barW('kp',   raw.kp));
+  setInd('dst',  raw.dst_nt,   v => (v >= 0 ? '+' : '') + Math.round(v), dstLvl(raw.dst_nt), barW('dst', raw.dst_nt));
+  setInd('s4',   raw.s4,       v => v.toFixed(3),          s4Lvl(raw.s4),   barW('s4',   raw.s4));
+  setInd('f107', raw.f107_sfu, v => String(Math.round(v)), f107Lvl(raw.f107_sfu), barW('f107', raw.f107_sfu));
+
+  // ── Data age note
+  const noteEl = document.getElementById('data-note');
+  const notes = [];
+  if (age.embrace_map_min != null && age.embrace_map_min > 120) {
+    const h = Math.round(age.embrace_map_min / 60);
+    notes.push(`📡 Dados ionosféricos (S4) com ~${h}h de defasagem — normal para este produto`);
+  }
+  if (raw.s4 == null) {
+    notes.push('S4 indisponível para esta localização (cobertura da América do Sul)');
+  }
+  if (notes.length) {
+    noteEl.textContent = notes.join(' · ');
+    noteEl.classList.add('visible');
+  } else {
+    noteEl.classList.remove('visible');
+  }
+
+  // ── Footer
+  const now = new Date();
+  document.getElementById('update-time').textContent =
+    `Última atualização: ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  document.getElementById('loc-text').textContent =
+    `${userLat.toFixed(2)}°, ${userLon.toFixed(2)}°`;
+}
+
+function setInd(key, value, fmt, lvlCls, widthPct) {
+  const valEl = document.getElementById(`val-${key}`);
+  const barEl = document.getElementById(`bar-${key}`);
+
+  if (value == null) {
+    valEl.textContent = '—';
+    barEl.style.width = '0%';
+    barEl.className   = 'ind-bar-fill na';
+    return;
+  }
+  valEl.textContent = fmt(value);
+  barEl.style.width = `${widthPct}%`;
+  barEl.className   = `ind-bar-fill ${lvlCls}`;
+}
+
+// ── Level classifiers ─────────────────────────────────────────────────────────
+function kpLvl(v)   { return v == null ? 'na' : v < 4  ? 'low' : v < 6   ? 'medium' : 'high'; }
+function dstLvl(v)  { return v == null ? 'na' : v > -30 ? 'low' : v > -100? 'medium' : 'high'; }
+function s4Lvl(v)   { return v == null ? 'na' : v < 0.3 ? 'low' : v < 0.6 ? 'medium' : 'high'; }
+function f107Lvl(v) { return v == null ? 'na' : v < 100 ? 'low' : v < 150 ? 'medium' : 'high'; }
+
+// ── Bar widths ────────────────────────────────────────────────────────────────
+function barW(key, v) {
+  if (v == null) return 0;
+  switch (key) {
+    case 'kp':   return Math.min(v / 9 * 100, 100);
+    case 'dst':  return Math.min(Math.max(-v, 0) / 300 * 100, 100);
+    case 's4':   return Math.min(v * 100, 100);
+    case 'f107': return Math.min(v / 250 * 100, 100);
+  }
+  return 0;
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+startApp();
+</script>
+</body>
+</html>

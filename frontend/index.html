@@ -88,8 +88,6 @@
 
     /* ── App screen ──────────────────────────────────────────────────────── */
     #screen-app {
-      position: relative;
-      overflow: hidden;
       justify-content: flex-start;
       gap: 14px;
       max-width: 480px;
@@ -580,78 +578,54 @@
 ════════════════════════════════════════════════════════════════════════════ -->
 <div id="screen-app" class="screen">
 
-  <!-- Background waves -->
-  <svg id="bg-sol" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0" viewBox="0 0 380 800" preserveAspectRatio="xMinYMin slice">
-    <defs>
-      <radialGradient id="sg-bg" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"  stop-color="#fff7c0"/>
-        <stop offset="35%" stop-color="#ffb700"/>
-        <stop offset="75%" stop-color="#ff6a00"/>
-        <stop offset="100%" stop-color="#c83200" stop-opacity="0"/>
-      </radialGradient>
-      <radialGradient id="cor-bg" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"  stop-color="#ff8c00" stop-opacity=".5"/>
-        <stop offset="100%" stop-color="#ff4400" stop-opacity="0"/>
-      </radialGradient>
-    </defs>
-    <style>
-      @keyframes bg-onda-anim{0%{opacity:var(--op-start);r:30;stroke-width:18}100%{opacity:0;r:700;stroke-width:1}}
-      @keyframes bg-glow{0%,100%{r:18}50%{r:22}}
-      #bg-ondas{--dur:16s;--op-start:.18}
-      .bg-onda{fill:none}
-      .bo1{animation:bg-onda-anim var(--dur) ease-out infinite 0s}
-      .bo2{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5)}
-      .bo3{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5 * 2)}
-      .bo4{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5 * 3)}
-      .bo5{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5 * 4)}
-      .bg-gl{animation:bg-glow 2.8s ease-in-out infinite}
-    </style>
-    <g id="bg-ondas">
-      <circle class="bg-onda bo1" cx="40" cy="40" r="30" stroke="#ff8800"/>
-      <circle class="bg-onda bo2" cx="40" cy="40" r="30" stroke="#ff8800"/>
-      <circle class="bg-onda bo3" cx="40" cy="40" r="30" stroke="#ff8800"/>
-      <circle class="bg-onda bo4" cx="40" cy="40" r="30" stroke="#ff8800"/>
-      <circle class="bg-onda bo5" cx="40" cy="40" r="30" stroke="#ff8800"/>
-    </g>
-    <circle cx="40" cy="40" r="28" fill="url(#cor-bg)"/>
-    <circle class="bg-gl" cx="40" cy="40" r="18" fill="url(#sg-bg)"/>
-  </svg>
-
   <!-- Header -->
-  <header>
-    <svg width="48" height="48" viewBox="0 0 380 390" role="img" style="background:transparent;flex-shrink:0">
+  <div id="app-header" style="position:relative;overflow:hidden;height:64px;border-bottom:1px solid #1a1a2a;width:100%;">
+
+    <svg id="bg-sol" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 380 64" preserveAspectRatio="xMinYMin slice">
       <defs>
-        <radialGradient id="sg-header" cx="50%" cy="50%" r="50%">
-          <stop offset="0%"   stop-color="#fff7c0"/>
-          <stop offset="35%"  stop-color="#ffb700"/>
-          <stop offset="75%"  stop-color="#ff6a00"/>
+        <radialGradient id="sg-h" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"  stop-color="#fff7c0"/>
+          <stop offset="35%" stop-color="#ffb700"/>
+          <stop offset="75%" stop-color="#ff6a00"/>
           <stop offset="100%" stop-color="#c83200" stop-opacity="0"/>
         </radialGradient>
-        <radialGradient id="corog-header" cx="50%" cy="50%" r="50%">
-          <stop offset="0%"   stop-color="#ff8c00" stop-opacity=".6"/>
+        <radialGradient id="cor-h" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"  stop-color="#ff8c00" stop-opacity=".5"/>
           <stop offset="100%" stop-color="#ff4400" stop-opacity="0"/>
         </radialGradient>
       </defs>
-      <circle class="p3" cx="190" cy="195" r="96"  fill="none" stroke="#ff6a00" stroke-width="1.5"/>
-      <circle class="p2" cx="190" cy="195" r="72"  fill="none" stroke="#ffaa00" stroke-width="2"/>
-      <circle class="p1" cx="190" cy="195" r="52"  fill="none" stroke="#ffcc00" stroke-width="2.5"/>
-      <g class="c-up"    style="transform-origin:190px 149px"><ellipse cx="190" cy="149" rx="7" ry="18" fill="#ff7700" opacity=".85"/></g>
-      <g class="c-ur"    style="transform-origin:224px 161px"><ellipse cx="224" cy="161" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(45,224,161)"/></g>
-      <g class="c-right" style="transform-origin:236px 195px"><ellipse cx="236" cy="195" rx="18" ry="7" fill="#ff7700" opacity=".85"/></g>
-      <g class="c-dr"    style="transform-origin:224px 229px"><ellipse cx="224" cy="229" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(-45,224,229)"/></g>
-      <g class="c-down"  style="transform-origin:190px 241px"><ellipse cx="190" cy="241" rx="7" ry="18" fill="#ff7700" opacity=".85"/></g>
-      <g class="c-dl"    style="transform-origin:156px 229px"><ellipse cx="156" cy="229" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(45,156,229)"/></g>
-      <g class="c-left"  style="transform-origin:144px 195px"><ellipse cx="144" cy="195" rx="18" ry="7" fill="#ff7700" opacity=".85"/></g>
-      <g class="c-ul"    style="transform-origin:156px 161px"><ellipse cx="156" cy="161" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(-45,156,161)"/></g>
-      <circle cx="190" cy="195" r="46" fill="url(#corog-header)"/>
-      <circle class="gl" cx="190" cy="195" r="38" fill="url(#sg-header)"/>
+      <style>
+        @keyframes bg-onda-anim{0%{opacity:var(--op-start);r:10;stroke-width:14}100%{opacity:0;r:300;stroke-width:.5}}
+        @keyframes bg-glow{0%,100%{r:14}50%{r:17}}
+        #bg-ondas{--dur:16s;--op-start:.18}
+        .bg-onda{fill:none}
+        .bo1{animation:bg-onda-anim var(--dur) ease-out infinite 0s}
+        .bo2{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5)}
+        .bo3{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5 * 2)}
+        .bo4{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5 * 3)}
+        .bo5{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5 * 4)}
+        .bg-gl{animation:bg-glow 2.8s ease-in-out infinite}
+      </style>
+      <g id="bg-ondas">
+        <circle class="bg-onda bo1" cx="32" cy="32" r="10" stroke="#ff8800"/>
+        <circle class="bg-onda bo2" cx="32" cy="32" r="10" stroke="#ff8800"/>
+        <circle class="bg-onda bo3" cx="32" cy="32" r="10" stroke="#ff8800"/>
+        <circle class="bg-onda bo4" cx="32" cy="32" r="10" stroke="#ff8800"/>
+        <circle class="bg-onda bo5" cx="32" cy="32" r="10" stroke="#ff8800"/>
+      </g>
+      <circle cx="32" cy="32" r="22" fill="url(#cor-h)"/>
+      <circle class="bg-gl" cx="32" cy="32" r="14" fill="url(#sg-h)"/>
     </svg>
-    <div>
-      <h1>Clima Solar</h1>
-      <p>Monitoramento de Clima Solar</p>
+
+    <div style="position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:100%;">
+      <div style="padding-left:52px;">
+        <div style="color:#ffb700;font-size:16px;font-weight:600;">Clima Solar</div>
+        <div style="color:#888;font-size:11px;">Monitoramento de Clima Solar</div>
+      </div>
+      <button id="info-btn" onclick="openInfo()" aria-label="Informações">ⓘ</button>
     </div>
-    <button id="info-btn" onclick="openInfo()" aria-label="Informações">ⓘ</button>
-  </header>
+
+  </div>
 
   <!-- Risk card -->
   <div id="risk-card">

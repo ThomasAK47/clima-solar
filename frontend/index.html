@@ -198,11 +198,26 @@
     }
 
     .ind-card {
+      position: relative;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 15px 15px 13px;
     }
+    .ind-card.full-row { grid-column: 1 / -1; }
+
+    /* trend badge */
+    .trend {
+      position: absolute;
+      top: 9px;
+      right: 11px;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .trend.up     { color: var(--red);    }
+    .trend.down   { color: var(--green);  }
+    .trend.stable { color: var(--dim);    }
     .ind-name {
       font-size: 11px;
       color: var(--dim);
@@ -237,6 +252,50 @@
     .ind-bar-fill.medium { background: var(--yellow); }
     .ind-bar-fill.high   { background: var(--red);    }
     .ind-bar-fill.na     { background: var(--border); }
+
+    /* ── History chart ───────────────────────────────────────────────────── */
+    #history-wrap {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 16px 14px;
+    }
+    #history-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    #history-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--dim);
+    }
+    #hist-tabs { display: flex; gap: 4px; }
+    .hist-tab {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      border-radius: 6px;
+      padding: 3px 9px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    .hist-tab:hover  { border-color: #6e7681; color: var(--text); }
+    .hist-tab.active { border-color: #ffb700; color: #ffb700; background: rgba(255,183,0,.08); }
+    #history-empty {
+      font-size: 13px;
+      color: var(--dim);
+      text-align: center;
+      padding: 24px 0;
+    }
+    #history-chart-wrap { position: relative; height: 160px; }
 
     /* ── Data age note ───────────────────────────────────────────────────── */
     #data-note {
@@ -644,6 +703,7 @@
   <div id="indicators">
 
     <div class="ind-card">
+      <span class="trend stable" id="trend-kp">→</span>
       <div class="ind-name">Índice Kp</div>
       <div class="ind-value" id="val-kp">—</div>
       <div class="ind-unit">escala 0 – 9</div>
@@ -651,6 +711,7 @@
     </div>
 
     <div class="ind-card">
+      <span class="trend stable" id="trend-dst">→</span>
       <div class="ind-name">Dst</div>
       <div class="ind-value" id="val-dst">—</div>
       <div class="ind-unit">nanoTesla (nT)</div>
@@ -658,6 +719,7 @@
     </div>
 
     <div class="ind-card">
+      <span class="trend stable" id="trend-s4">→</span>
       <div class="ind-name">S4 — Cintilação</div>
       <div class="ind-value" id="val-s4">—</div>
       <div class="ind-unit">amplitude (0 – 1)</div>
@@ -665,10 +727,19 @@
     </div>
 
     <div class="ind-card">
+      <span class="trend stable" id="trend-f107">→</span>
       <div class="ind-name">F10.7</div>
       <div class="ind-value" id="val-f107">—</div>
       <div class="ind-unit">fluxo solar (sfu)</div>
       <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-f107" style="width:0%"></div></div>
+    </div>
+
+    <div class="ind-card full-row">
+      <span class="trend stable" id="trend-phi60">→</span>
+      <div class="ind-name">Sigma_phi — Fase</div>
+      <div class="ind-value" id="val-phi60">—</div>
+      <div class="ind-unit">radianos</div>
+      <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-phi60" style="width:0%"></div></div>
     </div>
 
   </div>
@@ -683,6 +754,24 @@
              backdrop-filter:blur(4px);transition:border-color .15s,color .15s;">
       🌡 Heatmap
     </button>
+  </div>
+
+  <!-- History chart -->
+  <div id="history-wrap">
+    <div id="history-topbar">
+      <span id="history-title">Histórico — últimas leituras</span>
+      <div id="hist-tabs">
+        <button class="hist-tab active" data-key="score"  onclick="selectHistTab('score')">Score</button>
+        <button class="hist-tab"        data-key="kp"     onclick="selectHistTab('kp')">Kp</button>
+        <button class="hist-tab"        data-key="dst"    onclick="selectHistTab('dst')">Dst</button>
+        <button class="hist-tab"        data-key="s4"     onclick="selectHistTab('s4')">S4</button>
+        <button class="hist-tab"        data-key="phi60"  onclick="selectHistTab('phi60')">σφ</button>
+      </div>
+    </div>
+    <div id="history-empty">Coletando dados… o histórico aparecerá após a primeira atualização.</div>
+    <div id="history-chart-wrap" style="display:none;">
+      <canvas id="history-chart"></canvas>
+    </div>
   </div>
 
   <!-- Offline banner -->
@@ -768,6 +857,7 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 'use strict';
 
@@ -778,7 +868,10 @@ const API = (typeof window.CLIMA_SOLAR_API !== 'undefined')
   ? window.CLIMA_SOLAR_API.replace(/\/$/, '')
   : 'http://localhost:8000';
 const AUTO_REFRESH_MS = 5 * 60 * 1000; // 5 min
-const CACHE_KEY = 'clima_solar_last_data';
+const CACHE_KEY   = 'clima_solar_last_data';
+const TREND_KEY   = 'clima_solar_trend';
+const HISTORY_KEY = 'clima_solar_history';
+const HISTORY_MAX = 24;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let userLat = null;
@@ -943,11 +1036,20 @@ function render(data, offline = false) {
   document.getElementById('score-text').textContent   =
     `Score composto: ${score.toFixed(2)} de 1.00`;
 
-  // ── Indicator cards
-  setInd('kp',   raw.kp,       v => v.toFixed(1),         kpLvl(raw.kp),   barW('kp',   raw.kp));
-  setInd('dst',  raw.dst_nt,   v => (v >= 0 ? '+' : '') + Math.round(v), dstLvl(raw.dst_nt), barW('dst', raw.dst_nt));
-  setInd('s4',   raw.s4,       v => v.toFixed(3),          s4Lvl(raw.s4),   barW('s4',   raw.s4));
-  setInd('f107', raw.f107_sfu, v => String(Math.round(v)), f107Lvl(raw.f107_sfu), barW('f107', raw.f107_sfu));
+  // ── Indicator cards + trend
+  const phi60 = raw.phi60_rad ?? null;
+  saveTrend({ kp: raw.kp, dst: raw.dst_nt, s4: raw.s4, f107: raw.f107_sfu, phi60 });
+  setInd('kp',    raw.kp,       v => v.toFixed(1),                            kpLvl(raw.kp),      barW('kp',    raw.kp));
+  setInd('dst',   raw.dst_nt,   v => (v >= 0 ? '+' : '') + Math.round(v),     dstLvl(raw.dst_nt), barW('dst',   raw.dst_nt));
+  setInd('s4',    raw.s4,       v => v.toFixed(3),                             s4Lvl(raw.s4),      barW('s4',    raw.s4));
+  setInd('f107',  raw.f107_sfu, v => String(Math.round(v)),                    f107Lvl(raw.f107_sfu), barW('f107', raw.f107_sfu));
+  setInd('phi60', phi60,        v => v.toFixed(3),                             phi60Lvl(phi60),    barW('phi60', phi60));
+  ['kp','dst','s4','f107','phi60'].forEach(k => renderTrend(k));
+
+  // ── Histórico
+  saveHistory({ ts: new Date().toISOString(), score, kp: raw.kp, dst: raw.dst_nt,
+                s4: raw.s4, f107: raw.f107_sfu, phi60 });
+  renderHistory();
 
   // ── Data age note
   const noteEl = document.getElementById('data-note');
@@ -990,21 +1092,150 @@ function setInd(key, value, fmt, lvlCls, widthPct) {
 }
 
 // ── Level classifiers ─────────────────────────────────────────────────────────
-function kpLvl(v)   { return v == null ? 'na' : v < 4  ? 'low' : v < 6   ? 'medium' : 'high'; }
-function dstLvl(v)  { return v == null ? 'na' : v > -30 ? 'low' : v > -100? 'medium' : 'high'; }
-function s4Lvl(v)   { return v == null ? 'na' : v < 0.3 ? 'low' : v < 0.6 ? 'medium' : 'high'; }
-function f107Lvl(v) { return v == null ? 'na' : v < 100 ? 'low' : v < 150 ? 'medium' : 'high'; }
+function kpLvl(v)    { return v == null ? 'na' : v < 4   ? 'low' : v < 6   ? 'medium' : 'high'; }
+function dstLvl(v)   { return v == null ? 'na' : v > -30 ? 'low' : v > -100? 'medium' : 'high'; }
+function s4Lvl(v)    { return v == null ? 'na' : v < 0.3 ? 'low' : v < 0.6 ? 'medium' : 'high'; }
+function f107Lvl(v)  { return v == null ? 'na' : v < 100 ? 'low' : v < 150 ? 'medium' : 'high'; }
+function phi60Lvl(v) { return v == null ? 'na' : v < 0.1 ? 'low' : v < 0.5 ? 'medium' : 'high'; }
 
 // ── Bar widths ────────────────────────────────────────────────────────────────
 function barW(key, v) {
   if (v == null) return 0;
   switch (key) {
-    case 'kp':   return Math.min(v / 9 * 100, 100);
-    case 'dst':  return Math.min(Math.max(-v, 0) / 300 * 100, 100);
-    case 's4':   return Math.min(v * 100, 100);
-    case 'f107': return Math.min(v / 250 * 100, 100);
+    case 'kp':    return Math.min(v / 9 * 100, 100);
+    case 'dst':   return Math.min(Math.max(-v, 0) / 300 * 100, 100);
+    case 's4':    return Math.min(v * 100, 100);
+    case 'f107':  return Math.min(v / 250 * 100, 100);
+    case 'phi60': return Math.min(v / 1.0 * 100, 100);
   }
   return 0;
+}
+
+// ── Trend ─────────────────────────────────────────────────────────────────────
+function saveTrend(reading) {
+  let h = JSON.parse(localStorage.getItem(TREND_KEY) || '[]');
+  h.push(reading);
+  if (h.length > 2) h = h.slice(-2);
+  localStorage.setItem(TREND_KEY, JSON.stringify(h));
+}
+function renderTrend(key) {
+  const el = document.getElementById(`trend-${key}`);
+  if (!el) return;
+  const h = JSON.parse(localStorage.getItem(TREND_KEY) || '[]');
+  if (h.length < 2) { el.textContent = '→'; el.className = 'trend stable'; return; }
+  const prev = h[h.length - 2][key];
+  const curr = h[h.length - 1][key];
+  if (prev == null || curr == null) { el.textContent = '→'; el.className = 'trend stable'; return; }
+  const pct = Math.abs(curr - prev) / (Math.abs(prev) + 1e-9);
+  if (pct < 0.05) { el.textContent = '→'; el.className = 'trend stable'; return; }
+  // Dst: mais negativo = pior (↑ risk)
+  const worse = key === 'dst' ? curr < prev : curr > prev;
+  el.textContent = worse ? '↑' : '↓';
+  el.className   = worse ? 'trend up' : 'trend down';
+}
+
+// ── Histórico ─────────────────────────────────────────────────────────────────
+let histChart = null;
+let histTab   = 'score';
+
+function saveHistory(entry) {
+  let h = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  h.push(entry);
+  if (h.length > HISTORY_MAX) h = h.slice(-HISTORY_MAX);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+}
+
+function selectHistTab(key) {
+  histTab = key;
+  document.querySelectorAll('.hist-tab').forEach(b =>
+    b.classList.toggle('active', b.dataset.key === key)
+  );
+  renderHistory();
+}
+
+function renderHistory() {
+  const h       = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  const emptyEl = document.getElementById('history-empty');
+  const wrapEl  = document.getElementById('history-chart-wrap');
+
+  if (!h.length) {
+    emptyEl.style.display = 'block';
+    wrapEl.style.display  = 'none';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  wrapEl.style.display  = 'block';
+
+  const labels = h.map(e => {
+    const d = new Date(e.ts);
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  });
+  const values = h.map(e => e[histTab] ?? null);
+
+  const yScales = {
+    score: { min: 0, max: 1 },
+    kp:    { min: 0, max: 9 },
+    dst:   {},                   // auto — valores negativos
+    s4:    { min: 0, max: 1 },
+    phi60: { min: 0, max: 1 },
+  };
+  const yOpts = yScales[histTab] || {};
+
+  const gridColor = 'rgba(255,255,255,.05)';
+  const tickColor = '#8b949e';
+
+  if (histChart) {
+    histChart.data.labels = labels;
+    histChart.data.datasets[0].data = values;
+    Object.assign(histChart.options.scales.y, { min: undefined, max: undefined, ...yOpts });
+    histChart.update('none');
+    return;
+  }
+
+  const ctx = document.getElementById('history-chart').getContext('2d');
+  histChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: '#ffb700',
+        borderWidth: 2.5,
+        backgroundColor: 'rgba(255,183,0,0.08)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointBackgroundColor: '#ffb700',
+        spanGaps: true,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161b22',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          titleColor: '#e6edf3',
+          bodyColor: '#8b949e',
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: tickColor, font: { size: 10 }, maxRotation: 0 },
+          grid:  { color: gridColor },
+        },
+        y: {
+          ...yOpts,
+          ticks: { color: tickColor, font: { size: 10 } },
+          grid:  { color: gridColor },
+        },
+      },
+    },
+  });
 }
 
 // ── Background waves ──────────────────────────────────────────────────────────

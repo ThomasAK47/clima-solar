@@ -88,12 +88,40 @@
 
     /* ── App screen ──────────────────────────────────────────────────────── */
     #screen-app {
+      position: relative;
+      overflow: hidden;
       justify-content: flex-start;
       gap: 14px;
       max-width: 480px;
       width: 100%;
       padding-top: 20px;
     }
+
+    /* ── Header sun keyframes (usados pelo SVG do header) ───────────────── */
+    @keyframes pulse1 { 0%,100%{r:52;opacity:.55} 50%{r:62;opacity:.15} }
+    @keyframes pulse2 { 0%,100%{r:72;opacity:.35} 50%{r:86;opacity:.08} }
+    @keyframes pulse3 { 0%,100%{r:96;opacity:.2}  50%{r:114;opacity:.04} }
+    @keyframes glow   { 0%,100%{r:38} 50%{r:44} }
+    @keyframes cme-up    { 0%{opacity:0;transform:translateY(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateY(-70px) scale(1.6)} }
+    @keyframes cme-down  { 0%{opacity:0;transform:translateY(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateY(70px)  scale(1.6)} }
+    @keyframes cme-right { 0%{opacity:0;transform:translateX(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateX(70px)  scale(1.6)} }
+    @keyframes cme-left  { 0%{opacity:0;transform:translateX(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateX(-70px) scale(1.6)} }
+    @keyframes cme-ur { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(50px,-50px)  scale(1.6)} }
+    @keyframes cme-ul { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(-50px,-50px) scale(1.6)} }
+    @keyframes cme-dr { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(50px,50px)   scale(1.6)} }
+    @keyframes cme-dl { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(-50px,50px)  scale(1.6)} }
+    .p1{animation:pulse1 2.8s ease-in-out infinite}
+    .p2{animation:pulse2 2.8s ease-in-out infinite .4s}
+    .p3{animation:pulse3 2.8s ease-in-out infinite .8s}
+    .gl{animation:glow   2.8s ease-in-out infinite}
+    .c-up   {animation:cme-up    4s ease-out infinite 0s}
+    .c-ur   {animation:cme-ur    4s ease-out infinite .5s}
+    .c-right{animation:cme-right 4s ease-out infinite 1s}
+    .c-dr   {animation:cme-dr    4s ease-out infinite 1.5s}
+    .c-down {animation:cme-down  4s ease-out infinite 2s}
+    .c-dl   {animation:cme-dl    4s ease-out infinite 2.5s}
+    .c-left {animation:cme-left  4s ease-out infinite 3s}
+    .c-ul   {animation:cme-ul    4s ease-out infinite 3.5s}
 
     /* ── Header ──────────────────────────────────────────────────────────── */
     header {
@@ -459,61 +487,57 @@
 ════════════════════════════════════════════════════════════════════════════ -->
 <div id="screen-loading" class="screen active">
   <svg id="loading-icon" width="120" height="120" viewBox="0 0 380 390" role="img" style="background:transparent">
-    <title>Sol — Clima Solar</title>
-    <desc>Sol com ejeções de massa coronal em 8 direções simétricas</desc>
     <defs>
       <radialGradient id="sg-load" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"   stop-color="#fff7c0"/>
-        <stop offset="35%"  stop-color="#ffb700"/>
-        <stop offset="75%"  stop-color="#ff6a00"/>
+        <stop offset="0%"  stop-color="#fff7c0"/>
+        <stop offset="35%" stop-color="#ffb700"/>
+        <stop offset="75%" stop-color="#ff6a00"/>
         <stop offset="100%" stop-color="#c83200" stop-opacity="0"/>
       </radialGradient>
-      <radialGradient id="corog-load" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"   stop-color="#ff8c00" stop-opacity=".6"/>
+      <radialGradient id="cor-load" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"  stop-color="#ff8c00" stop-opacity=".6"/>
         <stop offset="100%" stop-color="#ff4400" stop-opacity="0"/>
       </radialGradient>
     </defs>
     <style>
-      @keyframes pulse1 { 0%,100%{r:52;opacity:.55} 50%{r:62;opacity:.15} }
-      @keyframes pulse2 { 0%,100%{r:72;opacity:.35} 50%{r:86;opacity:.08} }
-      @keyframes pulse3 { 0%,100%{r:96;opacity:.2}  50%{r:114;opacity:.04} }
-      @keyframes glow   { 0%,100%{r:38} 50%{r:44} }
-      @keyframes cme-up    { 0%{opacity:0;transform:translateY(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateY(-70px) scale(1.6)} }
-      @keyframes cme-down  { 0%{opacity:0;transform:translateY(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateY(70px)  scale(1.6)} }
-      @keyframes cme-right { 0%{opacity:0;transform:translateX(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateX(70px)  scale(1.6)} }
-      @keyframes cme-left  { 0%{opacity:0;transform:translateX(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateX(-70px) scale(1.6)} }
-      @keyframes cme-ur { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(50px,-50px)  scale(1.6)} }
-      @keyframes cme-ul { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(-50px,-50px) scale(1.6)} }
-      @keyframes cme-dr { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(50px,50px)   scale(1.6)} }
-      @keyframes cme-dl { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(-50px,50px)  scale(1.6)} }
-      @media (prefers-reduced-motion: no-preference) {
-        .p1{animation:pulse1 2.8s ease-in-out infinite}
-        .p2{animation:pulse2 2.8s ease-in-out infinite .4s}
-        .p3{animation:pulse3 2.8s ease-in-out infinite .8s}
-        .gl{animation:glow   2.8s ease-in-out infinite}
-        .c-up   {animation:cme-up    4s ease-out infinite 0s}
-        .c-ur   {animation:cme-ur    4s ease-out infinite .5s}
-        .c-right{animation:cme-right 4s ease-out infinite 1s}
-        .c-dr   {animation:cme-dr    4s ease-out infinite 1.5s}
-        .c-down {animation:cme-down  4s ease-out infinite 2s}
-        .c-dl   {animation:cme-dl    4s ease-out infinite 2.5s}
-        .c-left {animation:cme-left  4s ease-out infinite 3s}
-        .c-ul   {animation:cme-ul    4s ease-out infinite 3.5s}
-      }
+      @keyframes pulse1-l{0%,100%{r:52;opacity:.55}50%{r:62;opacity:.15}}
+      @keyframes pulse2-l{0%,100%{r:72;opacity:.35}50%{r:86;opacity:.08}}
+      @keyframes pulse3-l{0%,100%{r:96;opacity:.2}50%{r:114;opacity:.04}}
+      @keyframes glow-l{0%,100%{r:38}50%{r:44}}
+      @keyframes lcme-up   {0%{opacity:0;transform:translateY(0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translateY(-70px) scale(1.6)}}
+      @keyframes lcme-down {0%{opacity:0;transform:translateY(0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translateY(70px) scale(1.6)}}
+      @keyframes lcme-right{0%{opacity:0;transform:translateX(0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translateX(70px) scale(1.6)}}
+      @keyframes lcme-left {0%{opacity:0;transform:translateX(0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translateX(-70px) scale(1.6)}}
+      @keyframes lcme-ur{0%{opacity:0;transform:translate(0,0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translate(50px,-50px) scale(1.6)}}
+      @keyframes lcme-ul{0%{opacity:0;transform:translate(0,0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translate(-50px,-50px) scale(1.6)}}
+      @keyframes lcme-dr{0%{opacity:0;transform:translate(0,0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translate(50px,50px) scale(1.6)}}
+      @keyframes lcme-dl{0%{opacity:0;transform:translate(0,0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translate(-50px,50px) scale(1.6)}}
+      .lp1{animation:pulse1-l 2.8s ease-in-out infinite}
+      .lp2{animation:pulse2-l 2.8s ease-in-out infinite .4s}
+      .lp3{animation:pulse3-l 2.8s ease-in-out infinite .8s}
+      .lgl{animation:glow-l   2.8s ease-in-out infinite}
+      .lup   {animation:lcme-up    4s ease-out infinite 0s}
+      .lur   {animation:lcme-ur    4s ease-out infinite .5s}
+      .lright{animation:lcme-right 4s ease-out infinite 1s}
+      .ldr   {animation:lcme-dr    4s ease-out infinite 1.5s}
+      .ldown {animation:lcme-down  4s ease-out infinite 2s}
+      .ldl   {animation:lcme-dl    4s ease-out infinite 2.5s}
+      .lleft {animation:lcme-left  4s ease-out infinite 3s}
+      .lul   {animation:lcme-ul    4s ease-out infinite 3.5s}
     </style>
-    <circle class="p3" cx="190" cy="195" r="96"  fill="none" stroke="#ff6a00" stroke-width="1.5"/>
-    <circle class="p2" cx="190" cy="195" r="72"  fill="none" stroke="#ffaa00" stroke-width="2"/>
-    <circle class="p1" cx="190" cy="195" r="52"  fill="none" stroke="#ffcc00" stroke-width="2.5"/>
-    <g class="c-up"    style="transform-origin:190px 149px"><ellipse cx="190" cy="149" rx="7" ry="18" fill="#ff7700" opacity=".85"/></g>
-    <g class="c-ur"    style="transform-origin:224px 161px"><ellipse cx="224" cy="161" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(45,224,161)"/></g>
-    <g class="c-right" style="transform-origin:236px 195px"><ellipse cx="236" cy="195" rx="18" ry="7" fill="#ff7700" opacity=".85"/></g>
-    <g class="c-dr"    style="transform-origin:224px 229px"><ellipse cx="224" cy="229" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(-45,224,229)"/></g>
-    <g class="c-down"  style="transform-origin:190px 241px"><ellipse cx="190" cy="241" rx="7" ry="18" fill="#ff7700" opacity=".85"/></g>
-    <g class="c-dl"    style="transform-origin:156px 229px"><ellipse cx="156" cy="229" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(45,156,229)"/></g>
-    <g class="c-left"  style="transform-origin:144px 195px"><ellipse cx="144" cy="195" rx="18" ry="7" fill="#ff7700" opacity=".85"/></g>
-    <g class="c-ul"    style="transform-origin:156px 161px"><ellipse cx="156" cy="161" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(-45,156,161)"/></g>
-    <circle cx="190" cy="195" r="46" fill="url(#corog-load)"/>
-    <circle class="gl" cx="190" cy="195" r="38" fill="url(#sg-load)"/>
+    <circle class="lp3" cx="190" cy="195" r="96"  fill="none" stroke="#ff6a00" stroke-width="1.5"/>
+    <circle class="lp2" cx="190" cy="195" r="72"  fill="none" stroke="#ffaa00" stroke-width="2"/>
+    <circle class="lp1" cx="190" cy="195" r="52"  fill="none" stroke="#ffcc00" stroke-width="2.5"/>
+    <g class="lup"    style="transform-origin:190px 149px"><ellipse cx="190" cy="149" rx="7" ry="18" fill="#ff7700" opacity=".85"/></g>
+    <g class="lur"    style="transform-origin:224px 161px"><ellipse cx="224" cy="161" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(45,224,161)"/></g>
+    <g class="lright" style="transform-origin:236px 195px"><ellipse cx="236" cy="195" rx="18" ry="7" fill="#ff7700" opacity=".85"/></g>
+    <g class="ldr"    style="transform-origin:224px 229px"><ellipse cx="224" cy="229" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(-45,224,229)"/></g>
+    <g class="ldown"  style="transform-origin:190px 241px"><ellipse cx="190" cy="241" rx="7" ry="18" fill="#ff7700" opacity=".85"/></g>
+    <g class="ldl"    style="transform-origin:156px 229px"><ellipse cx="156" cy="229" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(45,156,229)"/></g>
+    <g class="lleft"  style="transform-origin:144px 195px"><ellipse cx="144" cy="195" rx="18" ry="7" fill="#ff7700" opacity=".85"/></g>
+    <g class="lul"    style="transform-origin:156px 161px"><ellipse cx="156" cy="161" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(-45,156,161)"/></g>
+    <circle cx="190" cy="195" r="46" fill="url(#cor-load)"/>
+    <circle class="lgl" cx="190" cy="195" r="38" fill="url(#sg-load)"/>
   </svg>
   <p id="loading-text">Obtendo sua localização…</p>
 </div>
@@ -555,6 +579,43 @@
      APP
 ════════════════════════════════════════════════════════════════════════════ -->
 <div id="screen-app" class="screen">
+
+  <!-- Background waves -->
+  <svg id="bg-sol" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0" viewBox="0 0 380 800" preserveAspectRatio="xMinYMin slice">
+    <defs>
+      <radialGradient id="sg-bg" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"  stop-color="#fff7c0"/>
+        <stop offset="35%" stop-color="#ffb700"/>
+        <stop offset="75%" stop-color="#ff6a00"/>
+        <stop offset="100%" stop-color="#c83200" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="cor-bg" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"  stop-color="#ff8c00" stop-opacity=".5"/>
+        <stop offset="100%" stop-color="#ff4400" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <style>
+      @keyframes bg-onda-anim{0%{opacity:var(--op-start);r:30}100%{opacity:0;r:700}}
+      @keyframes bg-glow{0%,100%{r:18}50%{r:22}}
+      #bg-ondas{--dur:6s;--op-start:.25}
+      .bg-onda{fill:none;stroke-width:1.5}
+      .bo1{animation:bg-onda-anim var(--dur) ease-out infinite 0s}
+      .bo2{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5)}
+      .bo3{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5 * 2)}
+      .bo4{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5 * 3)}
+      .bo5{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5 * 4)}
+      .bg-gl{animation:bg-glow 2.8s ease-in-out infinite}
+    </style>
+    <g id="bg-ondas">
+      <circle class="bg-onda bo1" cx="40" cy="40" r="30" stroke="#ff8800"/>
+      <circle class="bg-onda bo2" cx="40" cy="40" r="30" stroke="#ff8800"/>
+      <circle class="bg-onda bo3" cx="40" cy="40" r="30" stroke="#ff8800"/>
+      <circle class="bg-onda bo4" cx="40" cy="40" r="30" stroke="#ff8800"/>
+      <circle class="bg-onda bo5" cx="40" cy="40" r="30" stroke="#ff8800"/>
+    </g>
+    <circle cx="40" cy="40" r="28" fill="url(#cor-bg)"/>
+    <circle class="bg-gl" cx="40" cy="40" r="18" fill="url(#sg-bg)"/>
+  </svg>
 
   <!-- Header -->
   <header>
@@ -884,6 +945,9 @@ function render(data, offline = false) {
   const raw    = data.raw || {};
   const age    = data.data_age || {};
 
+  // ── Ondas de fundo reagem ao score
+  updateWaves(score);
+
   // ── Notificação se o nível de risco mudou
   checkRiskChange(lvlKey);
 
@@ -959,6 +1023,33 @@ function barW(key, v) {
     case 'f107': return Math.min(v / 250 * 100, 100);
   }
   return 0;
+}
+
+// ── Background waves ──────────────────────────────────────────────────────────
+function updateWaves(score) {
+  const ondas = document.getElementById('bg-ondas');
+  if (!ondas) return;
+
+  let dur, op, stroke;
+  if (score < 0.3) {
+    dur    = 6 - score * 6;
+    op     = 0.25 + score * 0.8;
+    stroke = '#ff8800';
+  } else if (score < 0.6) {
+    const t = (score - 0.3) / 0.3;
+    dur    = 4.2 - t * 1.4;
+    op     = 0.49 + t * 0.25;
+    stroke = '#ffcc00';
+  } else {
+    const t = (score - 0.6) / 0.4;
+    dur    = 2.8 - t * 1.2;
+    op     = 0.74 + t * 0.26;
+    stroke = '#ff3300';
+  }
+
+  ondas.style.setProperty('--dur', dur.toFixed(2) + 's');
+  ondas.style.setProperty('--op-start', op.toFixed(2));
+  ondas.querySelectorAll('.bg-onda').forEach(c => c.setAttribute('stroke', stroke));
 }
 
 // ── Info sheet ────────────────────────────────────────────────────────────────

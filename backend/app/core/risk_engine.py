@@ -164,3 +164,32 @@ def compute_risk(snapshot: SpaceWeatherSnapshot, embrace_data=None) -> RiskResul
         roti_score=round(roti_s, 4)   if roti_s  is not None else None,
         vtec_score=round(vtec_s, 4)   if vtec_s  is not None else None,
     )
+
+
+def point_score(
+    kp_raw:   Optional[float],
+    dst_raw:  Optional[float],
+    f107_raw: Optional[float],
+    s4_raw:   Optional[float] = None,
+    phi60_raw: Optional[float] = None,
+) -> float:
+    """
+    Lightweight composite score for a single grid point — no logging.
+    Used by the /heatmap endpoint to compute ~900 scores without flooding logs.
+    Same weight redistribution logic as compute_risk().
+    """
+    kp_s   = _kp_score(kp_raw)       if kp_raw   is not None else 0.5
+    dst_s  = _dst_score(dst_raw)     if dst_raw  is not None else 0.5
+    f107_s = _f107_score(f107_raw)   if f107_raw is not None else 0.5
+    s4_s   = _s4_score(s4_raw)       if s4_raw   is not None else None
+    phi60_s= _phi60_score(phi60_raw) if phi60_raw is not None else None
+
+    available: dict[str, float] = {"kp": kp_s, "dst": dst_s, "f107": f107_s}
+    if s4_s    is not None: available["s4"]    = s4_s
+    if phi60_s is not None: available["phi60"] = phi60_s
+
+    total_w = sum(_WEIGHTS[k] for k in available)
+    if total_w <= 0:
+        return 0.5
+    raw = sum(available[k] * _WEIGHTS[k] for k in available) / total_w
+    return round(min(max(raw, 0.0), 1.0), 4)

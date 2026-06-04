@@ -9,12 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.collectors.embrace import (
     EmbraceMatrices,
+    brazil_heatmap_grid,
     fetch_embrace_matrices,
     interpolate_embrace,
 )
 from app.collectors.gfz import fetch_dst
 from app.collectors.noaa import fetch_f107, fetch_kp
-from app.core.risk_engine import compute_risk
+from app.core.risk_engine import compute_risk, point_score
 from app.models.space_weather import SpaceWeatherSnapshot
 
 logging.basicConfig(
@@ -32,6 +33,7 @@ log = logging.getLogger(__name__)
 # ── In-memory cache ───────────────────────────────────────────────────────────
 _cache: SpaceWeatherSnapshot | None = None
 _embrace: EmbraceMatrices | None = None
+_heatmap_cache: dict | None = None          # {data: ..., cached_at: datetime}
 _REFRESH_INTERVAL = 15 * 60  # seconds
 
 
@@ -173,6 +175,49 @@ async def get_status(
         },
         "errors": _cache.errors,
     }
+
+
+@app.get("/heatmap")
+async def get_heatmap():
+    """
+    Ionospheric risk heatmap over Brazil at 1.5° resolution.
+    ~900 grid points with {lat, lon, s4, score}.
+    Cached for 15 min server-side.
+    """
+    global _heatmap_cache
+
+    now = datetime.now(timezone.utc)
+    if _heatmap_cache and (now - _heatmap_cache["cached_at"]).total_seconds() < 900:
+        return _heatmap_cache["data"]
+
+    if _cache is None:
+        return {"timestamp": None, "points": []}
+
+    # Global geo raw values (same for all grid points)
+    kp_raw   = _cache.kp.kp_fraction  if _cache.kp   else None
+    dst_raw  = _cache.dst.dst_nt      if _cache.dst  else None
+    f107_raw = _cache.f107.f107_sfu   if _cache.f107 else None
+
+    grid = brazil_heatmap_grid(_embrace)   # ~900 points, fast CPU loop
+
+    points = []
+    for pt in grid:
+        score = point_score(
+            kp_raw, dst_raw, f107_raw,
+            s4_raw=pt["s4"], phi60_raw=pt["phi60"],
+        )
+        points.append({
+            "lat":   pt["lat"],
+            "lon":   pt["lon"],
+            "s4":    round(pt["s4"], 4) if pt["s4"] is not None else None,
+            "score": score,
+        })
+
+    result = {"timestamp": _cache.fetched_at.isoformat(), "points": points}
+    _heatmap_cache = {"data": result, "cached_at": now}
+    log.info("Heatmap computed: %d points (embrace=%s)", len(points),
+             "ok" if _embrace and _embrace.s4_matrix is not None else "unavailable")
+    return result
 
 
 @app.get("/health")

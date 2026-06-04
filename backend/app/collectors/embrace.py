@@ -187,7 +187,7 @@ def interpolate_embrace(
 
 _BRAZIL_LAT = (-34.0,  6.0)
 _BRAZIL_LON = (-74.0, -28.0)
-_GRID_STEP  = 1.5
+_GRID_STEP  = 1.0
 
 
 def brazil_heatmap_grid(matrices: Optional[EmbraceMatrices]) -> list[dict]:

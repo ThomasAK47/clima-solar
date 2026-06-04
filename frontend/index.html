@@ -768,7 +768,6 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
 <script>
 'use strict';
 
@@ -1133,6 +1132,17 @@ function initMap(lat, lon) {
   setTimeout(() => leafletMap.invalidateSize(), 80);
 }
 
+function scoreToColor(score) {
+  if (score === null || score === undefined)
+                         return { color: '#888888', opacity: 0.10 };
+  if (score < 0.15)      return { color: '#00e676', opacity: 0.13 };
+  if (score < 0.30)      return { color: '#00e676', opacity: 0.22 };
+  if (score < 0.45)      return { color: '#ffcc00', opacity: 0.28 };
+  if (score < 0.60)      return { color: '#ff8800', opacity: 0.35 };
+  if (score < 0.75)      return { color: '#ff4400', opacity: 0.42 };
+  return                        { color: '#ff0000', opacity: 0.50 };
+}
+
 async function fetchHeatmap() {
   if (!leafletMap) return;
   try {
@@ -1141,15 +1151,21 @@ async function fetchHeatmap() {
     const data = await res.json();
     if (!data.points || !data.points.length) return;
 
-    const pts = data.points.map(p => [p.lat, p.lon, p.score]);
-
+    // Remove camada anterior
     if (heatLayer) leafletMap.removeLayer(heatLayer);
-    heatLayer = L.heatLayer(pts, {
-      radius:  35,
-      blur:    25,
-      maxZoom: 6,
-      gradient: { 0.0: '#00e676', 0.4: '#ffcc00', 0.7: '#ff6600', 1.0: '#ff0000' },
+
+    const half = 0.75; // metade de 1.5° (grau de resolução visual)
+    const rects = data.points.map(p => {
+      const { color, opacity } = p.s4 === null
+        ? { color: '#888888', opacity: 0.10 }
+        : scoreToColor(p.score);
+      return L.rectangle(
+        [[p.lat - half, p.lon - half], [p.lat + half, p.lon + half]],
+        { stroke: false, fillColor: color, fillOpacity: opacity }
+      );
     });
+
+    heatLayer = L.layerGroup(rects);
     if (heatVisible) heatLayer.addTo(leafletMap);
   } catch (e) {
     console.warn('Heatmap fetch failed:', e);

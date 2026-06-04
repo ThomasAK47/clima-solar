@@ -259,6 +259,160 @@
     #refresh-btn.spinning .spin-icon { animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── Info button ────────────────────────────────────────────────────── */
+    #info-btn {
+      margin-left: auto;
+      flex-shrink: 0;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 17px;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    #info-btn:hover  { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,.08); }
+    #info-btn:active { transform: scale(.93); }
+
+    /* ── Info overlay + sheet ───────────────────────────────────────────── */
+    #info-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s;
+    }
+    #info-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    #info-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 100%;
+      max-width: 480px;
+      max-height: 82dvh;
+      overflow-y: auto;
+      background: #1c2128;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 20px 20px 0 0;
+      z-index: 101;
+      padding: 0 20px 40px;
+      transition: transform .32s cubic-bezier(.32,1,.32,1);
+      overscroll-behavior: contain;
+    }
+    #info-sheet.open {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* drag handle */
+    .sheet-handle {
+      width: 38px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 12px auto 0;
+    }
+
+    /* sheet header row */
+    .sheet-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0 14px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .sheet-topbar h2 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -.2px;
+    }
+    #info-close {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color .15s, color .15s;
+    }
+    #info-close:hover { border-color: var(--red); color: var(--red); }
+
+    /* sheet sections */
+    .sheet-section { margin-bottom: 22px; }
+    .sheet-section h3 {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .sheet-section p {
+      font-size: 14px;
+      color: var(--dim);
+      line-height: 1.6;
+    }
+
+    /* index rows */
+    .idx-row {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(48,54,61,.6);
+    }
+    .idx-row:last-child { border-bottom: none; }
+    .idx-tag {
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(88,166,255,.12);
+      color: var(--accent);
+      border-radius: 6px;
+      padding: 2px 8px;
+      min-width: 54px;
+      text-align: center;
+    }
+    .idx-desc {
+      font-size: 13px;
+      color: var(--dim);
+      line-height: 1.5;
+    }
+
+    /* source rows */
+    .src-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(48,54,61,.6);
+      font-size: 13px;
+    }
+    .src-row:last-child { border-bottom: none; }
+    .src-params { color: var(--text); font-weight: 600; min-width: 80px; flex-shrink: 0; }
+    .src-name   { color: var(--dim); line-height: 1.5; }
+
     /* ── Map ─────────────────────────────────────────────────────────────── */
     #map-wrap {
       width: 100%;
@@ -378,6 +532,7 @@
       <h1>Clima Solar</h1>
       <p>Monitoramento de Clima Solar</p>
     </div>
+    <button id="info-btn" onclick="openInfo()" aria-label="Informações">ⓘ</button>
   </header>
 
   <!-- Risk card -->
@@ -455,6 +610,63 @@
   </footer>
 
 </div><!-- /screen-app -->
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     INFO SHEET
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="info-overlay" onclick="closeInfo()"></div>
+
+<div id="info-sheet" role="dialog" aria-modal="true" aria-label="Informações">
+  <div class="sheet-handle"></div>
+  <div class="sheet-topbar">
+    <h2>Sobre o Clima Solar</h2>
+    <button id="info-close" onclick="closeInfo()" aria-label="Fechar">×</button>
+  </div>
+
+  <!-- Como funciona -->
+  <div class="sheet-section">
+    <h3>Como funciona</h3>
+    <p>O Clima Solar monitora condições do espaço que afetam sinais GNSS (GPS). Um score composto de 0 a 1 é calculado em tempo real com base em múltiplos índices geofísicos.</p>
+  </div>
+
+  <!-- O que cada índice significa -->
+  <div class="sheet-section">
+    <h3>O que cada índice significa</h3>
+    <div class="idx-row">
+      <span class="idx-tag">Kp</span>
+      <span class="idx-desc">Atividade geomagnética global (0–9). Acima de 5 indica tempestade.</span>
+    </div>
+    <div class="idx-row">
+      <span class="idx-tag">Dst</span>
+      <span class="idx-desc">Distúrbio no campo magnético terrestre. Abaixo de −100 nT indica tempestade forte.</span>
+    </div>
+    <div class="idx-row">
+      <span class="idx-tag">S4</span>
+      <span class="idx-desc">Cintilação ionosférica em amplitude (0–1). Acima de 0,3 começa a afetar o sinal.</span>
+    </div>
+    <div class="idx-row">
+      <span class="idx-tag">F10.7</span>
+      <span class="idx-desc">Fluxo de rádio solar (sfu). Indica o nível geral de atividade solar.</span>
+    </div>
+  </div>
+
+  <!-- Fontes de dados -->
+  <div class="sheet-section">
+    <h3>Fontes de dados</h3>
+    <div class="src-row">
+      <span class="src-params">Kp · F10.7</span>
+      <span class="src-name">NOAA Space Weather Prediction Center (swpc.noaa.gov)</span>
+    </div>
+    <div class="src-row">
+      <span class="src-params">Dst</span>
+      <span class="src-name">GFZ Potsdam / Kyoto World Data Center</span>
+    </div>
+    <div class="src-row">
+      <span class="src-params">S4 · σφ</span>
+      <span class="src-name">EMBRACE/INPE — Monitoramento Brasileiro do Clima Espacial</span>
+    </div>
+  </div>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -691,6 +903,20 @@ function barW(key, v) {
   }
   return 0;
 }
+
+// ── Info sheet ────────────────────────────────────────────────────────────────
+function openInfo() {
+  document.getElementById('info-overlay').classList.add('open');
+  document.getElementById('info-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeInfo() {
+  document.getElementById('info-overlay').classList.remove('open');
+  document.getElementById('info-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+// Fecha com ESC no desktop
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeInfo(); });
 
 // ── Notifications ─────────────────────────────────────────────────────────────
 const LEVEL_CACHE_KEY = 'clima_solar_last_level';

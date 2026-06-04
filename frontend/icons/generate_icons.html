@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerador de Ícones — Clima Solar</title>
+  <style>
+    body { font-family: sans-serif; background: #0d1117; color: #e6edf3;
+           display: flex; flex-direction: column; align-items: center;
+           padding: 40px 20px; gap: 24px; }
+    h2   { font-size: 18px; }
+    p    { color: #8b949e; font-size: 14px; text-align: center; max-width: 400px; }
+    .canvases { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+    canvas { border-radius: 12px; }
+    .btns  { display: flex; gap: 12px; }
+    button { padding: 10px 22px; border-radius: 8px; border: 1px solid #30363d;
+             background: #161b22; color: #e6edf3; font-size: 14px; cursor: pointer; }
+    button:hover { background: #1f2937; }
+    small  { color: #8b949e; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h2>Gerador de Ícones — Clima Solar</h2>
+  <p>Clique nos botões abaixo para baixar os ícones PNG e salve-os nesta pasta (<code>frontend/icons/</code>).</p>
+
+  <div class="canvases">
+    <div>
+      <canvas id="c192" width="192" height="192"></canvas><br>
+      <small>192×192</small>
+    </div>
+    <div>
+      <canvas id="c512" width="512" height="512"></canvas><br>
+      <small>512×512</small>
+    </div>
+  </div>
+
+  <div class="btns">
+    <button onclick="download('c192','icon-192.png')">⬇ Baixar icon-192.png</button>
+    <button onclick="download('c512','icon-512.png')">⬇ Baixar icon-512.png</button>
+  </div>
+
+  <script>
+    function drawIcon(canvas) {
+      const ctx = canvas.getContext('2d');
+      const S = canvas.width;
+      const s = S / 192; // scale factor
+
+      // Fundo com cantos arredondados
+      const r = S * 0.18;
+      ctx.beginPath();
+      ctx.moveTo(r, 0); ctx.lineTo(S-r, 0);
+      ctx.quadraticCurveTo(S, 0, S, r);
+      ctx.lineTo(S, S-r); ctx.quadraticCurveTo(S, S, S-r, S);
+      ctx.lineTo(r, S);  ctx.quadraticCurveTo(0, S, 0, S-r);
+      ctx.lineTo(0, r);  ctx.quadraticCurveTo(0, 0, r, 0);
+      ctx.closePath();
+      ctx.fillStyle = '#0d1117';
+      ctx.fill();
+      ctx.clip();
+
+      // Gradiente sutil de fundo
+      const grad = ctx.createRadialGradient(S*0.4, S*0.3, 0, S*0.5, S*0.5, S*0.7);
+      grad.addColorStop(0, '#161b22');
+      grad.addColorStop(1, '#0d1117');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, S, S);
+
+      ctx.save();
+      ctx.translate(S/2, S/2);
+      ctx.scale(s, s);
+
+      // ── Corpo do satélite ──────────────────────────────────────────────────
+      ctx.fillStyle = '#58a6ff';
+      roundRect(ctx, -22, -22, 44, 44, 6);
+      ctx.fill();
+
+      // Detalhe central
+      ctx.fillStyle = '#0d1117';
+      ctx.globalAlpha = 0.3;
+      roundRect(ctx, -10, -10, 20, 20, 3);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // ── Painéis solares (esquerda) ─────────────────────────────────────────
+      ctx.fillStyle = '#1f6feb';
+      roundRect(ctx, -72, -14, 46, 28, 4);
+      ctx.fill();
+
+      // Grade dos painéis (esquerda)
+      ctx.strokeStyle = '#58a6ff';
+      ctx.globalAlpha = 0.4;
+      ctx.lineWidth = 1.5;
+      for (let i = -56; i < -26; i += 15) {
+        ctx.beginPath(); ctx.moveTo(i, -14); ctx.lineTo(i, 14); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.moveTo(-72, 0); ctx.lineTo(-26, 0); ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // ── Painéis solares (direita) ──────────────────────────────────────────
+      ctx.fillStyle = '#1f6feb';
+      roundRect(ctx, 26, -14, 46, 28, 4);
+      ctx.fill();
+
+      ctx.strokeStyle = '#58a6ff';
+      ctx.globalAlpha = 0.4;
+      ctx.lineWidth = 1.5;
+      for (let i = 41; i < 72; i += 15) {
+        ctx.beginPath(); ctx.moveTo(i, -14); ctx.lineTo(i, 14); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.moveTo(26, 0); ctx.lineTo(72, 0); ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // ── Antena ────────────────────────────────────────────────────────────
+      ctx.strokeStyle = '#58a6ff';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, -22);
+      ctx.lineTo(0, -56);
+      ctx.stroke();
+
+      // Ponta da antena
+      ctx.fillStyle = '#58a6ff';
+      ctx.beginPath();
+      ctx.arc(0, -63, 9, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Ondas de sinal
+      ctx.strokeStyle = '#58a6ff';
+      ctx.lineWidth = 2.5;
+      ctx.lineCap  = 'round';
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.arc(0, -63, 20, Math.PI * 1.15, Math.PI * 1.85);
+      ctx.stroke();
+      ctx.globalAlpha = 0.25;
+      ctx.beginPath();
+      ctx.arc(0, -63, 32, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      ctx.restore();
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x+r, y);
+      ctx.lineTo(x+w-r, y); ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+      ctx.lineTo(x+w, y+h-r); ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+      ctx.lineTo(x+r, y+h); ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+      ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y);
+      ctx.closePath();
+    }
+
+    function download(id, name) {
+      const a = document.createElement('a');
+      a.download = name;
+      a.href = document.getElementById(id).toDataURL('image/png');
+      a.click();
+    }
+
+    drawIcon(document.getElementById('c192'));
+    drawIcon(document.getElementById('c512'));
+  </script>
+</body>
+</html>

@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>Clima Solar — GNSS</title>
   <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <meta name="apple-mobile-web-app-title" content="Clima Solar">
   <script>window.CLIMA_SOLAR_API = 'https://clima-solar-production.up.railway.app';</script>
@@ -258,6 +259,30 @@
     #refresh-btn.spinning .spin-icon { animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── Map ─────────────────────────────────────────────────────────────── */
+    #map-wrap {
+      width: 100%;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--card);
+    }
+    #map { height: 210px; width: 100%; }
+
+    /* Leaflet controls — dark theme override */
+    .leaflet-control-zoom a {
+      background: var(--card) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+    .leaflet-bar { border-color: var(--border) !important; box-shadow: none !important; }
+    .leaflet-control-attribution {
+      background: rgba(13,17,23,.75) !important;
+      color: var(--dim) !important;
+      font-size: 10px !important;
+    }
+    .leaflet-control-attribution a { color: var(--accent) !important; }
+
     /* ── Stars bg (pure CSS, no images) ─────────────────────────────────── */
     body::before {
       content: '';
@@ -401,6 +426,11 @@
 
   </div>
 
+  <!-- Map -->
+  <div id="map-wrap" style="display:none;">
+    <div id="map"></div>
+  </div>
+
   <!-- Offline banner -->
   <div id="offline-banner" style="display:none;width:100%;padding:8px 14px;border-radius:10px;
        background:#2d1f00;border:1px solid #4d3800;color:#d29922;font-size:13px;text-align:center;">
@@ -426,6 +456,7 @@
 
 </div><!-- /screen-app -->
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 'use strict';
 
@@ -546,6 +577,7 @@ async function doFetch() {
     }
     render(data, false);
     showScreen('screen-app');
+    initMap(userLat, userLon);
   } catch (err) {
     console.error('Fetch error:', err);
     // Tenta dados offline do localStorage
@@ -554,6 +586,7 @@ async function doFetch() {
       try {
         render(JSON.parse(saved), true);
         showScreen('screen-app');
+        if (userLat && userLon) initMap(userLat, userLon);
       } catch {
         showScreen('screen-api-error');
       }
@@ -652,6 +685,49 @@ function barW(key, v) {
     case 'f107': return Math.min(v / 250 * 100, 100);
   }
   return 0;
+}
+
+// ── Map ───────────────────────────────────────────────────────────────────────
+let leafletMap  = null;
+let mapMarker   = null;
+
+function initMap(lat, lon) {
+  const wrap = document.getElementById('map-wrap');
+  wrap.style.display = 'block';
+
+  if (leafletMap) {
+    leafletMap.setView([lat, lon], 11);
+    mapMarker.setLatLng([lat, lon]);
+    return;
+  }
+
+  leafletMap = L.map('map', { zoomControl: true, attributionControl: true })
+    .setView([lat, lon], 11);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' +
+      ' &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19,
+  }).addTo(leafletMap);
+
+  const markerHtml =
+    '<div style="width:16px;height:16px;border-radius:50%;' +
+    'background:#58a6ff;border:2.5px solid #fff;' +
+    'box-shadow:0 0 10px rgba(88,166,255,.7)"></div>';
+
+  const icon = L.divIcon({
+    className: '',
+    html: markerHtml,
+    iconSize:   [16, 16],
+    iconAnchor: [8, 8],
+  });
+
+  mapMarker = L.marker([lat, lon], { icon }).addTo(leafletMap);
+
+  // Garante tamanho correto após o elemento ficar visível
+  setTimeout(() => leafletMap.invalidateSize(), 80);
 }
 
 // ── Service Worker ────────────────────────────────────────────────────────────

@@ -187,28 +187,3 @@ async def health():
             _embrace.s4_matrix is not None or _embrace.phi_matrix is not None
         ),
     }
-
-
-@app.get("/debug/raw-apis")
-async def debug_raw_apis():
-    """Inspect raw API responses. Remove before production."""
-    urls = {
-        "kp":   "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json",
-        "dst":  "https://services.swpc.noaa.gov/products/kyoto-dst.json",
-        "f107": "https://services.swpc.noaa.gov/products/summary/10cm-flux.json",
-    }
-    results = {}
-    async with httpx.AsyncClient() as client:
-        for name, url in urls.items():
-            try:
-                r = await client.get(url, timeout=10.0, follow_redirects=True)
-                body = r.json()
-                preview = body[:3] if isinstance(body, list) else body
-                results[name] = {
-                    "status": r.status_code,
-                    "type": type(body).__name__,
-                    "preview": preview,
-                }
-            except Exception as exc:
-                results[name] = {"error": f"{type(exc).__name__}: {exc}"}
-    return results

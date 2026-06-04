@@ -100,24 +100,21 @@ def compute_risk(snapshot: SpaceWeatherSnapshot, embrace_data=None) -> RiskResul
     vtec_s  = _vtec_score(vtec_raw) if vtec_raw is not None else None
 
     # ── Weighted composite ────────────────────────────────────────────────────
-    iono_available = s4_s is not None
+    # Build a dict of only the parameters that have actual values, then
+    # redistribute the weight of any null param proportionally among the rest.
+    available: dict[str, float] = {
+        "kp":   kp_s,
+        "dst":  dst_s,
+        "f107": f107_s,
+    }
+    if s4_s    is not None: available["s4"]    = s4_s
+    if phi60_s is not None: available["phi60"] = phi60_s
+    if roti_s  is not None: available["roti"]  = roti_s
+    if vtec_s  is not None: available["vtec"]  = vtec_s
 
-    if not iono_available:
-        iono_weight = _WEIGHTS["s4"] + _WEIGHTS["phi60"] + _WEIGHTS["roti"] + _WEIGHTS["vtec"]
-        geo_total   = _WEIGHTS["kp"] + _WEIGHTS["dst"] + _WEIGHTS["f107"]
-        scale       = (geo_total + iono_weight) / geo_total
-        score = (kp_s * _WEIGHTS["kp"] + dst_s * _WEIGHTS["dst"] + f107_s * _WEIGHTS["f107"]) * scale
-    else:
-        scale = 1.0
-        score = (
-            kp_s   * _WEIGHTS["kp"]
-            + dst_s  * _WEIGHTS["dst"]
-            + f107_s * _WEIGHTS["f107"]
-            + (s4_s    or 0) * _WEIGHTS["s4"]
-            + (phi60_s or 0) * _WEIGHTS["phi60"]
-            + (roti_s  or 0) * _WEIGHTS["roti"]
-            + (vtec_s  or 0) * _WEIGHTS["vtec"]
-        )
+    total_weight = sum(_WEIGHTS[k] for k in available)
+    scale = 1.0 / total_weight if total_weight > 0 else 1.0
+    score = sum(available[k] * _WEIGHTS[k] for k in available) * scale
 
     score = min(max(score, 0.0), 1.0)
     level = RiskLevel.LOW if score < 0.3 else RiskLevel.MEDIUM if score < 0.6 else RiskLevel.HIGH
@@ -134,19 +131,22 @@ def compute_risk(snapshot: SpaceWeatherSnapshot, embrace_data=None) -> RiskResul
               "F10.7", f"{f107_raw}" if f107_raw is not None else "fallback(0.5)",
               f"{f107_s:.4f}", _WEIGHTS["f107"], f107_s * _WEIGHTS["f107"])
 
-    if iono_available:
-        log.debug("  %-10s raw=%-10s score=%-8s weight=%.3f contrib=%.4f",
-                  "S4",    f"{s4_raw:.4f}",    f"{s4_s:.4f}",    _WEIGHTS["s4"],    (s4_s    or 0) * _WEIGHTS["s4"])
-        log.debug("  %-10s raw=%-10s score=%-8s weight=%.3f contrib=%.4f",
-                  "phi60", f"{phi60_raw:.4f}" if phi60_raw else "None",
-                  f"{phi60_s:.4f}" if phi60_s else "None", _WEIGHTS["phi60"], (phi60_s or 0) * _WEIGHTS["phi60"])
-        log.debug("  %-10s raw=%-10s score=%-8s weight=%.2f  contrib=%.4f",
-                  "ROTI",  str(roti_raw), str(roti_s), _WEIGHTS["roti"], 0)
-        log.debug("  %-10s raw=%-10s score=%-8s weight=%.2f  contrib=%.4f",
-                  "VTEC",  str(vtec_raw), str(vtec_s), _WEIGHTS["vtec"], 0)
-        log.debug("  mode: full weights (ionospheric data available)")
-    else:
-        log.debug("  mode: geo-only (EMBRACE unavailable) | scale=%.4f", scale)
+    for param, raw, sub in [
+        ("S4",    s4_raw,    s4_s),
+        ("phi60", phi60_raw, phi60_s),
+        ("ROTI",  roti_raw,  roti_s),
+        ("VTEC",  vtec_raw,  vtec_s),
+    ]:
+        key = param.lower()
+        if sub is not None:
+            log.debug("  %-10s raw=%-10s score=%-8s weight=%.3f contrib=%.4f",
+                      param, f"{raw:.4f}", f"{sub:.4f}",
+                      _WEIGHTS[key], sub * _WEIGHTS[key])
+        else:
+            log.debug("  %-10s raw=None       score=None     weight=%.3f (redistributed)",
+                      param, _WEIGHTS[key])
+    log.debug("  mode: %s | active_params=%d | scale=%.4f",
+              "full" if len(available) == 7 else "partial", len(available), scale)
 
     log.info("✓ Risk score=%.4f level=%s  [Kp=%.2f Dst=%s F10.7=%s S4=%s phi60=%s]",
              score, level.value,

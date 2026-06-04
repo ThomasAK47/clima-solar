@@ -63,14 +63,7 @@
 
     /* ── Loading ─────────────────────────────────────────────────────────── */
     #screen-loading { gap: 18px; }
-    #loading-icon {
-      color: var(--dim);
-      animation: float 3s ease-in-out infinite;
-    }
-    @keyframes float {
-      0%, 100% { transform: translateY(0); opacity: .5; }
-      50%       { transform: translateY(-6px); opacity: 1; }
-    }
+    #loading-icon { display: block; }
     #loading-text { color: var(--dim); font-size: 15px; }
 
     /* ── Error screens ───────────────────────────────────────────────────── */
@@ -465,16 +458,62 @@
      LOADING
 ════════════════════════════════════════════════════════════════════════════ -->
 <div id="screen-loading" class="screen active">
-  <svg id="loading-icon" width="72" height="72" viewBox="0 0 24 24" fill="none">
-    <rect x="8.5" y="8.5" width="7" height="7" rx="1.2" fill="currentColor"/>
-    <rect x="1" y="10" width="6.5" height="4" rx="1" fill="currentColor" opacity=".55"/>
-    <rect x="16.5" y="10" width="6.5" height="4" rx="1" fill="currentColor" opacity=".55"/>
-    <line x1="12" y1="8.5" x2="12" y2="4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-    <circle cx="12" cy="3.5" r="1.5" fill="currentColor"/>
-    <path d="M14.5 6 Q17 3.5 14.5 1" stroke="currentColor" stroke-width="1" fill="none" opacity=".45" stroke-linecap="round"/>
-    <path d="M16 7 Q20 3.5 16 0" stroke="currentColor" stroke-width="1" fill="none" opacity=".25" stroke-linecap="round"/>
-    <line x1="12" y1="15.5" x2="12" y2="19.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-    <circle cx="12" cy="20.5" r="1.5" fill="currentColor" opacity=".5"/>
+  <svg id="loading-icon" width="120" height="120" viewBox="0 0 380 390" role="img" style="background:transparent">
+    <title>Sol — Clima Solar</title>
+    <desc>Sol com ejeções de massa coronal em 8 direções simétricas</desc>
+    <defs>
+      <radialGradient id="sg-load" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#fff7c0"/>
+        <stop offset="35%"  stop-color="#ffb700"/>
+        <stop offset="75%"  stop-color="#ff6a00"/>
+        <stop offset="100%" stop-color="#c83200" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="corog-load" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stop-color="#ff8c00" stop-opacity=".6"/>
+        <stop offset="100%" stop-color="#ff4400" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <style>
+      @keyframes pulse1 { 0%,100%{r:52;opacity:.55} 50%{r:62;opacity:.15} }
+      @keyframes pulse2 { 0%,100%{r:72;opacity:.35} 50%{r:86;opacity:.08} }
+      @keyframes pulse3 { 0%,100%{r:96;opacity:.2}  50%{r:114;opacity:.04} }
+      @keyframes glow   { 0%,100%{r:38} 50%{r:44} }
+      @keyframes cme-up    { 0%{opacity:0;transform:translateY(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateY(-70px) scale(1.6)} }
+      @keyframes cme-down  { 0%{opacity:0;transform:translateY(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateY(70px)  scale(1.6)} }
+      @keyframes cme-right { 0%{opacity:0;transform:translateX(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateX(70px)  scale(1.6)} }
+      @keyframes cme-left  { 0%{opacity:0;transform:translateX(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateX(-70px) scale(1.6)} }
+      @keyframes cme-ur { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(50px,-50px)  scale(1.6)} }
+      @keyframes cme-ul { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(-50px,-50px) scale(1.6)} }
+      @keyframes cme-dr { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(50px,50px)   scale(1.6)} }
+      @keyframes cme-dl { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(-50px,50px)  scale(1.6)} }
+      @media (prefers-reduced-motion: no-preference) {
+        .p1{animation:pulse1 2.8s ease-in-out infinite}
+        .p2{animation:pulse2 2.8s ease-in-out infinite .4s}
+        .p3{animation:pulse3 2.8s ease-in-out infinite .8s}
+        .gl{animation:glow   2.8s ease-in-out infinite}
+        .c-up   {animation:cme-up    4s ease-out infinite 0s}
+        .c-ur   {animation:cme-ur    4s ease-out infinite .5s}
+        .c-right{animation:cme-right 4s ease-out infinite 1s}
+        .c-dr   {animation:cme-dr    4s ease-out infinite 1.5s}
+        .c-down {animation:cme-down  4s ease-out infinite 2s}
+        .c-dl   {animation:cme-dl    4s ease-out infinite 2.5s}
+        .c-left {animation:cme-left  4s ease-out infinite 3s}
+        .c-ul   {animation:cme-ul    4s ease-out infinite 3.5s}
+      }
+    </style>
+    <circle class="p3" cx="190" cy="195" r="96"  fill="none" stroke="#ff6a00" stroke-width="1.5"/>
+    <circle class="p2" cx="190" cy="195" r="72"  fill="none" stroke="#ffaa00" stroke-width="2"/>
+    <circle class="p1" cx="190" cy="195" r="52"  fill="none" stroke="#ffcc00" stroke-width="2.5"/>
+    <g class="c-up"    style="transform-origin:190px 149px"><ellipse cx="190" cy="149" rx="7" ry="18" fill="#ff7700" opacity=".85"/></g>
+    <g class="c-ur"    style="transform-origin:224px 161px"><ellipse cx="224" cy="161" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(45,224,161)"/></g>
+    <g class="c-right" style="transform-origin:236px 195px"><ellipse cx="236" cy="195" rx="18" ry="7" fill="#ff7700" opacity=".85"/></g>
+    <g class="c-dr"    style="transform-origin:224px 229px"><ellipse cx="224" cy="229" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(-45,224,229)"/></g>
+    <g class="c-down"  style="transform-origin:190px 241px"><ellipse cx="190" cy="241" rx="7" ry="18" fill="#ff7700" opacity=".85"/></g>
+    <g class="c-dl"    style="transform-origin:156px 229px"><ellipse cx="156" cy="229" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(45,156,229)"/></g>
+    <g class="c-left"  style="transform-origin:144px 195px"><ellipse cx="144" cy="195" rx="18" ry="7" fill="#ff7700" opacity=".85"/></g>
+    <g class="c-ul"    style="transform-origin:156px 161px"><ellipse cx="156" cy="161" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(-45,156,161)"/></g>
+    <circle cx="190" cy="195" r="46" fill="url(#corog-load)"/>
+    <circle class="gl" cx="190" cy="195" r="38" fill="url(#sg-load)"/>
   </svg>
   <p id="loading-text">Obtendo sua localização…</p>
 </div>
@@ -519,14 +558,32 @@
 
   <!-- Header -->
   <header>
-    <svg class="logo-icon" width="38" height="38" viewBox="0 0 24 24" fill="none">
-      <rect x="8.5" y="8.5" width="7" height="7" rx="1.2" fill="currentColor"/>
-      <rect x="1" y="10" width="6.5" height="4" rx="1" fill="currentColor" opacity=".55"/>
-      <rect x="16.5" y="10" width="6.5" height="4" rx="1" fill="currentColor" opacity=".55"/>
-      <line x1="12" y1="8.5" x2="12" y2="4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-      <circle cx="12" cy="3.5" r="1.5" fill="currentColor"/>
-      <path d="M14.5 6 Q17 3.5 14.5 1" stroke="currentColor" stroke-width="1" fill="none" opacity=".45" stroke-linecap="round"/>
-      <path d="M16 7 Q20 3.5 16 0" stroke="currentColor" stroke-width="1" fill="none" opacity=".25" stroke-linecap="round"/>
+    <svg width="48" height="48" viewBox="0 0 380 390" role="img" style="background:transparent;flex-shrink:0">
+      <defs>
+        <radialGradient id="sg-header" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stop-color="#fff7c0"/>
+          <stop offset="35%"  stop-color="#ffb700"/>
+          <stop offset="75%"  stop-color="#ff6a00"/>
+          <stop offset="100%" stop-color="#c83200" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="corog-header" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stop-color="#ff8c00" stop-opacity=".6"/>
+          <stop offset="100%" stop-color="#ff4400" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <circle class="p3" cx="190" cy="195" r="96"  fill="none" stroke="#ff6a00" stroke-width="1.5"/>
+      <circle class="p2" cx="190" cy="195" r="72"  fill="none" stroke="#ffaa00" stroke-width="2"/>
+      <circle class="p1" cx="190" cy="195" r="52"  fill="none" stroke="#ffcc00" stroke-width="2.5"/>
+      <g class="c-up"    style="transform-origin:190px 149px"><ellipse cx="190" cy="149" rx="7" ry="18" fill="#ff7700" opacity=".85"/></g>
+      <g class="c-ur"    style="transform-origin:224px 161px"><ellipse cx="224" cy="161" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(45,224,161)"/></g>
+      <g class="c-right" style="transform-origin:236px 195px"><ellipse cx="236" cy="195" rx="18" ry="7" fill="#ff7700" opacity=".85"/></g>
+      <g class="c-dr"    style="transform-origin:224px 229px"><ellipse cx="224" cy="229" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(-45,224,229)"/></g>
+      <g class="c-down"  style="transform-origin:190px 241px"><ellipse cx="190" cy="241" rx="7" ry="18" fill="#ff7700" opacity=".85"/></g>
+      <g class="c-dl"    style="transform-origin:156px 229px"><ellipse cx="156" cy="229" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(45,156,229)"/></g>
+      <g class="c-left"  style="transform-origin:144px 195px"><ellipse cx="144" cy="195" rx="18" ry="7" fill="#ff7700" opacity=".85"/></g>
+      <g class="c-ul"    style="transform-origin:156px 161px"><ellipse cx="156" cy="161" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(-45,156,161)"/></g>
+      <circle cx="190" cy="195" r="46" fill="url(#corog-header)"/>
+      <circle class="gl" cx="190" cy="195" r="38" fill="url(#sg-header)"/>
     </svg>
     <div>
       <h1>Clima Solar</h1>

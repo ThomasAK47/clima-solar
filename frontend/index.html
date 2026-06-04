@@ -985,6 +985,7 @@ async function doFetch() {
     showScreen('screen-app');
     initMap(userLat, userLon);
     fetchHeatmap();
+    fetchServerHistory();
   } catch (err) {
     console.error('Fetch error:', err);
     // Tenta dados offline do localStorage
@@ -1151,6 +1152,22 @@ function selectHistTab(key) {
     b.classList.toggle('active', b.dataset.key === key)
   );
   renderHistory();
+}
+
+async function fetchServerHistory() {
+  if (!userLat || !userLon) return;
+  try {
+    const url = `${API}/history?lat=${userLat.toFixed(5)}&lon=${userLon.toFixed(5)}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.entries?.length) return;
+    // Servidor é a fonte primária — substitui histórico local
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(data.entries));
+    renderHistory();
+  } catch (e) {
+    console.warn('History server fetch failed, using local cache:', e);
+  }
 }
 
 function renderHistory() {

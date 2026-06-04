@@ -3,6 +3,8 @@ import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
+from app import db
+
 import httpx
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -85,6 +87,7 @@ async def _refresh_loop():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await asyncio.to_thread(db.init_db)
     task = asyncio.create_task(_refresh_loop())
     yield
     task.cancel()
@@ -138,6 +141,17 @@ async def get_status(
 
     risk = compute_risk(_cache, embrace)
 
+    # Persiste no histórico SQLite (operação síncrona rodada em thread pool)
+    await asyncio.to_thread(
+        db.save_snapshot,
+        lat, lon, risk.score,
+        _cache.kp.kp_fraction  if _cache.kp   else None,
+        _cache.dst.dst_nt      if _cache.dst  else None,
+        _cache.f107.f107_sfu   if _cache.f107 else None,
+        embrace.s4             if embrace     else None,
+        embrace.phi60_rad      if embrace     else None,
+    )
+
     embrace_age_min = None
     if _embrace and _embrace.s4_map_time:
         embrace_age_min = round(
@@ -175,6 +189,19 @@ async def get_status(
         },
         "errors": _cache.errors,
     }
+
+
+@app.get("/history")
+async def get_history(
+    lat: float = Query(..., ge=-90,  le=90,   description="Latitude (decimal degrees)"),
+    lon: float = Query(..., ge=-180, le=180,  description="Longitude (decimal degrees)"),
+):
+    """
+    Last 48 h of readings for this location (rounded to 1° grid cell).
+    Returns entries ordered oldest → newest for chart rendering.
+    """
+    entries = await asyncio.to_thread(db.get_history, lat, lon)
+    return {"lat": round(lat, 1), "lon": round(lon, 1), "entries": entries}
 
 
 @app.get("/heatmap")

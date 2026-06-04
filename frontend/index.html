@@ -538,6 +538,8 @@ async function startApp() {
     userLon = pos.coords.longitude;
 
     document.getElementById('loading-text').textContent = 'Carregando dados de clima espacial…';
+    // Pede permissão de notificação logo após a geolocalização ser concedida
+    await requestNotificationPermission();
     await doFetch();
     scheduleAutoRefresh();
   } catch (err) {
@@ -613,6 +615,9 @@ function render(data, offline = false) {
   const raw    = data.raw || {};
   const age    = data.data_age || {};
 
+  // ── Notificação se o nível de risco mudou
+  checkRiskChange(lvlKey);
+
   // ── Risk card
   const card = document.getElementById('risk-card');
   card.className = lvl.cls;
@@ -685,6 +690,47 @@ function barW(key, v) {
     case 'f107': return Math.min(v / 250 * 100, 100);
   }
   return 0;
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+const LEVEL_CACHE_KEY = 'clima_solar_last_level';
+
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+}
+
+async function notifyRiskChange(newLevel) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const labels = { low: 'BAIXO', medium: 'MÉDIO', high: 'ALTO' };
+  const label  = labels[newLevel] || newLevel.toUpperCase();
+  const title  = '⚠️ Clima Solar';
+  const opts   = {
+    body:  `Risco mudou para ${label} na sua região`,
+    icon:  './icons/icon-192.png',
+    badge: './icons/icon-192.png',
+    tag:   'risco-mudou',          // substitui notificação anterior se ainda visível
+    renotify: true,
+  };
+
+  try {
+    // Preferencialmente via Service Worker (funciona em PWA Android)
+    const reg = await navigator.serviceWorker.ready;
+    reg.showNotification(title, opts);
+  } catch {
+    new Notification(title, opts);
+  }
+}
+
+function checkRiskChange(newLevel) {
+  const prev = localStorage.getItem(LEVEL_CACHE_KEY);
+  if (prev && prev !== newLevel) {
+    notifyRiskChange(newLevel);
+  }
+  localStorage.setItem(LEVEL_CACHE_KEY, newLevel);
 }
 
 // ── Map ───────────────────────────────────────────────────────────────────────

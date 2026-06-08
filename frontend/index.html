@@ -254,49 +254,89 @@
     .ind-bar-fill.high   { background: var(--red);    }
     .ind-bar-fill.na     { background: var(--border); }
 
-    /* ── History chart ───────────────────────────────────────────────────── */
-    #history-wrap {
+    /* ── Clickable indicator cards ───────────────────────────────────────── */
+    .ind-card { cursor: pointer; transition: border-color .2s, box-shadow .2s, transform .1s; }
+    .ind-card:hover  { border-color: rgba(88,166,255,.45); box-shadow: 0 0 16px rgba(88,166,255,.1); }
+    .ind-card:active { transform: scale(.98); }
+    .ind-arrow {
+      position: absolute;
+      bottom: 9px;
+      right: 10px;
+      font-size: 16px;
+      color: var(--border);
+      transition: color .2s;
+      line-height: 1;
+      pointer-events: none;
+      font-weight: 300;
+    }
+    .ind-card:hover .ind-arrow { color: var(--accent); }
+
+    /* ── Detail sheet ────────────────────────────────────────────────────── */
+    #detail-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s;
+    }
+    #detail-overlay.open { opacity: 1; pointer-events: all; }
+    #detail-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%);
       width: 100%;
-      background: var(--card);
+      max-width: 480px;
+      max-height: 82dvh;
+      overflow-y: auto;
+      background: #1c2128;
       border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px 16px 14px;
+      border-bottom: none;
+      border-radius: 20px 20px 0 0;
+      z-index: 101;
+      padding: 0 20px 40px;
+      transition: transform .32s cubic-bezier(.32,1,.32,1);
+      overscroll-behavior: contain;
     }
-    #history-topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    #history-title {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .6px;
-      color: var(--dim);
-    }
-    #hist-tabs { display: flex; gap: 4px; }
-    .hist-tab {
+    #detail-sheet.open { transform: translateX(-50%) translateY(0); }
+    #detail-close {
       background: none;
       border: 1px solid var(--border);
       color: var(--dim);
-      border-radius: 6px;
-      padding: 3px 9px;
-      font-size: 11px;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 18px;
+      line-height: 1;
       cursor: pointer;
-      transition: border-color .15s, color .15s, background .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color .15s, color .15s;
+      flex-shrink: 0;
     }
-    .hist-tab:hover  { border-color: #6e7681; color: var(--text); }
-    .hist-tab.active { border-color: #ffb700; color: #ffb700; background: rgba(255,183,0,.08); }
-    #history-empty {
+    #detail-close:hover { border-color: var(--red); color: var(--red); }
+    .detail-chart-wrap { position: relative; height: 150px; margin-top: 8px; }
+    .detail-empty {
       font-size: 13px;
       color: var(--dim);
       text-align: center;
-      padding: 24px 0;
+      padding: 30px 0 16px;
     }
-    #history-chart-wrap { position: relative; height: 160px; }
+    .detail-status {
+      margin-top: 16px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      padding: 9px 14px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+    }
 
     /* ── Data age note ───────────────────────────────────────────────────── */
     #data-note {
@@ -703,44 +743,49 @@
   <!-- Indicator cards -->
   <div id="indicators">
 
-    <div class="ind-card">
+    <div class="ind-card" onclick="openDetail('kp')">
       <span class="trend stable" id="trend-kp">→</span>
       <div class="ind-name">Índice Kp</div>
       <div class="ind-value" id="val-kp">—</div>
       <div class="ind-unit">escala 0 – 9</div>
       <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-kp" style="width:0%"></div></div>
+      <span class="ind-arrow">›</span>
     </div>
 
-    <div class="ind-card">
+    <div class="ind-card" onclick="openDetail('dst')">
       <span class="trend stable" id="trend-dst">→</span>
       <div class="ind-name">Dst</div>
       <div class="ind-value" id="val-dst">—</div>
       <div class="ind-unit">nanoTesla (nT)</div>
       <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-dst" style="width:0%"></div></div>
+      <span class="ind-arrow">›</span>
     </div>
 
-    <div class="ind-card">
+    <div class="ind-card" onclick="openDetail('s4')">
       <span class="trend stable" id="trend-s4">→</span>
       <div class="ind-name">S4 — Cintilação</div>
       <div class="ind-value" id="val-s4">—</div>
       <div class="ind-unit">amplitude (0 – 1)</div>
       <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-s4" style="width:0%"></div></div>
+      <span class="ind-arrow">›</span>
     </div>
 
-    <div class="ind-card">
+    <div class="ind-card" onclick="openDetail('f107')">
       <span class="trend stable" id="trend-f107">→</span>
       <div class="ind-name">F10.7</div>
       <div class="ind-value" id="val-f107">—</div>
       <div class="ind-unit">fluxo solar (sfu)</div>
       <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-f107" style="width:0%"></div></div>
+      <span class="ind-arrow">›</span>
     </div>
 
-    <div class="ind-card full-row">
+    <div class="ind-card full-row" onclick="openDetail('phi60')">
       <span class="trend stable" id="trend-phi60">→</span>
       <div class="ind-name">Sigma_phi — Fase</div>
       <div class="ind-value" id="val-phi60">—</div>
       <div class="ind-unit">radianos</div>
       <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-phi60" style="width:0%"></div></div>
+      <span class="ind-arrow">›</span>
     </div>
 
   </div>
@@ -755,24 +800,6 @@
              backdrop-filter:blur(4px);transition:border-color .15s,color .15s;">
       🌡 Heatmap
     </button>
-  </div>
-
-  <!-- History chart -->
-  <div id="history-wrap">
-    <div id="history-topbar">
-      <span id="history-title">Histórico — últimas leituras</span>
-      <div id="hist-tabs">
-        <button class="hist-tab active" data-key="score"  onclick="selectHistTab('score')">Score</button>
-        <button class="hist-tab"        data-key="kp"     onclick="selectHistTab('kp')">Kp</button>
-        <button class="hist-tab"        data-key="dst"    onclick="selectHistTab('dst')">Dst</button>
-        <button class="hist-tab"        data-key="s4"     onclick="selectHistTab('s4')">S4</button>
-        <button class="hist-tab"        data-key="phi60"  onclick="selectHistTab('phi60')">σφ</button>
-      </div>
-    </div>
-    <div id="history-empty">Coletando dados… o histórico aparecerá após a primeira atualização.</div>
-    <div id="history-chart-wrap" style="display:none;">
-      <canvas id="history-chart"></canvas>
-    </div>
   </div>
 
   <!-- Offline banner -->
@@ -818,27 +845,6 @@
     <p>O Clima Solar monitora condições do espaço que afetam sinais GNSS (GPS). Um score composto de 0 a 1 é calculado em tempo real com base em múltiplos índices geofísicos.</p>
   </div>
 
-  <!-- O que cada índice significa -->
-  <div class="sheet-section">
-    <h3>O que cada índice significa</h3>
-    <div class="idx-row">
-      <span class="idx-tag">Kp</span>
-      <span class="idx-desc">Atividade geomagnética global (0–9). Acima de 5 indica tempestade.</span>
-    </div>
-    <div class="idx-row">
-      <span class="idx-tag">Dst</span>
-      <span class="idx-desc">Distúrbio no campo magnético terrestre. Abaixo de −100 nT indica tempestade forte.</span>
-    </div>
-    <div class="idx-row">
-      <span class="idx-tag">S4</span>
-      <span class="idx-desc">Cintilação ionosférica em amplitude (0–1). Acima de 0,3 começa a afetar o sinal.</span>
-    </div>
-    <div class="idx-row">
-      <span class="idx-tag">F10.7</span>
-      <span class="idx-desc">Fluxo de rádio solar (sfu). Indica o nível geral de atividade solar.</span>
-    </div>
-  </div>
-
   <!-- Fontes de dados -->
   <div class="sheet-section">
     <h3>Fontes de dados</h3>
@@ -855,6 +861,37 @@
       <span class="src-name">EMBRACE/INPE — Monitoramento Brasileiro do Clima Espacial</span>
     </div>
   </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     DETAIL SHEET
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="detail-overlay" onclick="closeDetail()"></div>
+
+<div id="detail-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do parâmetro">
+  <div class="sheet-handle"></div>
+  <div class="sheet-topbar">
+    <div>
+      <h2 id="detail-param-name">—</h2>
+      <div id="detail-param-unit" style="font-size:12px;color:var(--dim);margin-top:2px;"></div>
+    </div>
+    <button id="detail-close" onclick="closeDetail()" aria-label="Fechar">×</button>
+  </div>
+
+  <div class="sheet-section">
+    <h3>O que é</h3>
+    <p id="detail-text"></p>
+  </div>
+
+  <div class="sheet-section">
+    <h3>Últimas 24 horas</h3>
+    <div id="detail-chart-empty" class="detail-empty">Coletando histórico — disponível após algumas atualizações</div>
+    <div id="detail-chart-wrap" class="detail-chart-wrap" style="display:none;">
+      <canvas id="detail-chart"></canvas>
+    </div>
+  </div>
+
+  <div id="detail-status" class="detail-status">Valor atual: —</div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1048,10 +1085,9 @@ function render(data, offline = false) {
   setInd('phi60', phi60,        v => v.toFixed(3),                             phi60Lvl(phi60),    barW('phi60', phi60));
   ['kp','dst','s4','f107','phi60'].forEach(k => renderTrend(k));
 
-  // ── Histórico
+  // ── Histórico (dados salvos no localStorage para uso nos modais de detalhe)
   saveHistory({ ts: new Date().toISOString(), score, kp: raw.kp, dst: raw.dst_nt,
                 s4: raw.s4, f107: raw.f107_sfu, phi60 });
-  renderHistory();
 
   // ── Data age note
   const noteEl = document.getElementById('data-note');
@@ -1147,13 +1183,6 @@ function saveHistory(entry) {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
 }
 
-function selectHistTab(key) {
-  histTab = key;
-  document.querySelectorAll('.hist-tab').forEach(b =>
-    b.classList.toggle('active', b.dataset.key === key)
-  );
-  renderHistory();
-}
 
 async function fetchServerHistory() {
   if (!userLat || !userLon) return;
@@ -1165,7 +1194,6 @@ async function fetchServerHistory() {
     if (!data.entries?.length) return;
     // Servidor é a fonte primária — substitui histórico local
     localStorage.setItem(HISTORY_KEY, JSON.stringify(data.entries));
-    renderHistory();
   } catch (e) {
     console.warn('History server fetch failed, using local cache:', e);
   }
@@ -1293,7 +1321,154 @@ function closeInfo() {
   document.body.style.overflow = '';
 }
 // Fecha com ESC no desktop
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeInfo(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeInfo(); closeDetail(); } });
+
+// ── Detail sheet ──────────────────────────────────────────────────────────────
+let detailChart = null;
+
+const PARAM_INFO = {
+  kp: {
+    name: 'Índice Geomagnético Planetário', unit: 'escala 0 – 9', histKey: 'kp',
+    text: 'O Kp mede o nível global de atividade geomagnética em janelas de 3 horas, numa escala de 0 a 9. É calculado a partir de 13 observatórios magnéticos distribuídos pelo mundo. Valores até 3 indicam condições calmas. Acima de 5 caracteriza uma tempestade geomagnética, que comprime a magnetosfera, perturba a ionosfera e pode causar erros de vários metros no posicionamento GNSS. Em tempestades extremas (Kp ≥ 8), receptores podem perder o sinal completamente.',
+    lvlFn: kpLvl, fmtFn: v => v.toFixed(1), yScale: { min: 0, max: 9 },
+  },
+  dst: {
+    name: 'Disturbance Storm-Time', unit: 'nanoTesla (nT)', histKey: 'dst',
+    text: 'O Dst mede distúrbios na componente horizontal do campo magnético terrestre, originados na corrente anelar equatorial. Em condições normais fica próximo de zero. Durante tempestades geomagnéticas cai abruptamente para valores negativos: abaixo de -30 nT indica tempestade fraca, abaixo de -100 nT indica tempestade forte, e abaixo de -250 nT indica tempestade extrema. Quanto mais negativo o Dst, maior a perturbação ionosférica e o erro no sinal GNSS.',
+    lvlFn: dstLvl, fmtFn: v => (v >= 0 ? '+' : '') + Math.round(v), yScale: {},
+  },
+  s4: {
+    name: 'Índice de Cintilação em Amplitude', unit: 'adimensional (0 – 1)', histKey: 's4',
+    text: 'O S4 mede flutuações rápidas na intensidade do sinal GNSS causadas por irregularidades no plasma ionosférico, como as bolhas ionosféricas. É calculado como o desvio-padrão normalizado da potência do sinal num intervalo de 60 segundos. Valores abaixo de 0,3 são desprezíveis. Entre 0,3 e 0,6 há degradação moderada da precisão e risco de perda de ciclos. Acima de 0,6 a cintilação é severa e pode causar perda total de rastreio do satélite. No Brasil, a região equatorial e a anomalia de Appleton-Hartley são as mais afetadas, especialmente entre 20h e 24h hora local.',
+    lvlFn: s4Lvl, fmtFn: v => v.toFixed(3), yScale: { min: 0, max: 1 },
+  },
+  f107: {
+    name: 'Fluxo de Rádio Solar', unit: 'unidades de fluxo solar (sfu)', histKey: 'f107',
+    text: 'O F10.7 mede a intensidade do ruído de rádio solar em 10,7 cm de comprimento de onda, expresso em unidades de fluxo solar (sfu). É um indicador-chave da atividade solar geral e tem forte correlação com a emissão de radiação ultravioleta extrema (EUV), que é a principal responsável pela ionização da ionosfera. Valores abaixo de 100 sfu indicam Sol calmo. Entre 100 e 150 sfu a atividade é moderada. Acima de 150 sfu a ionosfera está mais densa e sujeita a maiores erros de refração no sinal GNSS.',
+    lvlFn: f107Lvl, fmtFn: v => String(Math.round(v)), yScale: { min: 0 },
+  },
+  phi60: {
+    name: 'σφ — Índice de Cintilação em Fase (Sigma Phi)', unit: 'radianos', histKey: 'phi60',
+    text: 'O sigma_phi (Phi60) mede flutuações na fase da onda portadora do sinal GNSS num intervalo de 60 segundos, expresso em radianos. Enquanto o S4 detecta variações de potência, o sigma_phi captura variações de fase — ambos podem ocorrer juntos ou separados. Valores abaixo de 0,1 rad são normais. Entre 0,1 e 0,5 rad há degradação das soluções de fase inteira, comprometendo o posicionamento de alta precisão (PPP e RTK). Acima de 0,5 rad o receptor tende a perder o rastreio de fase, inviabilizando aplicações geodésicas.',
+    lvlFn: phi60Lvl, fmtFn: v => v.toFixed(3), yScale: { min: 0, max: 1 },
+  },
+};
+
+const LEVEL_COLORS = { low: '#2ea043', medium: '#d29922', high: '#f85149', na: '#8b949e' };
+const LEVEL_LABELS = { low: 'BAIXO', medium: 'MÉDIO', high: 'ALTO', na: 'N/A' };
+
+function openDetail(paramId) {
+  const info = PARAM_INFO[paramId];
+  if (!info) return;
+  document.getElementById('detail-param-name').textContent = info.name;
+  document.getElementById('detail-param-unit').textContent = info.unit;
+  document.getElementById('detail-text').textContent       = info.text;
+  renderDetailChart(info);
+  document.getElementById('detail-overlay').classList.add('open');
+  document.getElementById('detail-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail() {
+  document.getElementById('detail-overlay').classList.remove('open');
+  document.getElementById('detail-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+  if (detailChart) { detailChart.destroy(); detailChart = null; }
+}
+
+function renderDetailChart(info) {
+  const h        = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  const emptyEl  = document.getElementById('detail-chart-empty');
+  const wrapEl   = document.getElementById('detail-chart-wrap');
+  const recent   = h.slice(-24);
+  const validVals = recent.map(e => e[info.histKey]).filter(v => v != null);
+
+  if (validVals.length < 2) {
+    emptyEl.style.display = 'block';
+    wrapEl.style.display  = 'none';
+    renderDetailStatus(info, h);
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+  wrapEl.style.display  = 'block';
+
+  const labels = recent.map(e => {
+    const d = new Date(e.ts);
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  });
+  const values = recent.map(e => e[info.histKey] ?? null);
+
+  const lastVal   = validVals[validVals.length - 1];
+  const lvlCls    = info.lvlFn(lastVal);
+  const lineColor = LEVEL_COLORS[lvlCls] || '#ffb700';
+
+  if (detailChart) { detailChart.destroy(); detailChart = null; }
+  const ctx = document.getElementById('detail-chart').getContext('2d');
+  detailChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: lineColor,
+        borderWidth: 2,
+        backgroundColor: lineColor + '18',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 2,
+        pointBackgroundColor: lineColor,
+        spanGaps: true,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161b22',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          titleColor: '#e6edf3',
+          bodyColor: '#8b949e',
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#8b949e', font: { size: 10 }, maxRotation: 0, maxTicksLimit: 6 },
+          grid:  { color: 'rgba(255,255,255,.05)' },
+        },
+        y: {
+          ...info.yScale,
+          ticks: { color: '#8b949e', font: { size: 10 } },
+          grid:  { color: 'rgba(255,255,255,.05)' },
+        },
+      },
+    },
+  });
+
+  renderDetailStatus(info, h);
+}
+
+function renderDetailStatus(info, h) {
+  const el = document.getElementById('detail-status');
+  let lastVal = null;
+  if (h && h.length) {
+    for (let i = h.length - 1; i >= 0; i--) {
+      if (h[i][info.histKey] != null) { lastVal = h[i][info.histKey]; break; }
+    }
+  }
+  if (lastVal == null) {
+    el.textContent = 'Valor atual: — (sem dados para esta localização)';
+    el.style.color = 'var(--dim)';
+    return;
+  }
+  const lvlCls = info.lvlFn(lastVal);
+  el.textContent = `Valor atual: ${info.fmtFn(lastVal)} — Nível: ${LEVEL_LABELS[lvlCls] || 'N/A'}`;
+  el.style.color = LEVEL_COLORS[lvlCls] || 'var(--dim)';
+}
 
 // ── Notifications ─────────────────────────────────────────────────────────────
 const LEVEL_CACHE_KEY = 'clima_solar_last_level';

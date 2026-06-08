@@ -187,14 +187,15 @@ def interpolate_embrace(
 
 _BRAZIL_LAT = (-34.0,  6.0)
 _BRAZIL_LON = (-74.0, -28.0)
-_GRID_STEP  = 1.0
+_GRID_STEP  = 0.5
 
 
 def brazil_heatmap_grid(matrices: Optional[EmbraceMatrices]) -> list[dict]:
     """
-    1.5° regular grid covering Brazil (-34→+6 lat, -74→-28 lon).
+    0.5° regular grid covering Brazil (-34→+6 lat, -74→-28 lon).
     Each entry: {lat, lon, s4: float|None, phi60: float|None}.
     Works when matrices is None — returns None for iono fields (geo-only score).
+    ~7,533 points at 0.5° resolution (4× more than 1.0° grid).
     """
     s4_mat  = matrices.s4_matrix  if matrices is not None else None
     phi_mat = matrices.phi_matrix if matrices is not None else None

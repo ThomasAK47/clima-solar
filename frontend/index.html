@@ -1522,13 +1522,13 @@ function initMap(lat, lon) {
   wrap.style.display = 'block';
 
   if (leafletMap) {
-    leafletMap.setView([lat, lon], 11);
+    leafletMap.setView([lat, lon], 6);
     mapMarker.setLatLng([lat, lon]);
     return;
   }
 
   leafletMap = L.map('map', { zoomControl: true, attributionControl: true })
-    .setView([lat, lon], 11);
+    .setView([lat, lon], 6);
 
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution:
@@ -1578,7 +1578,7 @@ async function fetchHeatmap() {
     // Remove camada anterior
     if (heatLayer) leafletMap.removeLayer(heatLayer);
 
-    const half = 0.75; // metade de 1.5° (grau de resolução visual)
+    const half = 0.25; // metade de 0.5° (grau de resolução visual)
     const rects = data.points.map(p => {
       const { color, opacity } = p.s4 === null
         ? { color: '#888888', opacity: 0.10 }

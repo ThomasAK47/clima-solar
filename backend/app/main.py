@@ -207,8 +207,8 @@ async def get_history(
 @app.get("/heatmap")
 async def get_heatmap():
     """
-    Ionospheric risk heatmap over Brazil at 1.5° resolution.
-    ~900 grid points with {lat, lon, s4, score}.
+    Ionospheric risk heatmap over Brazil at 0.5° resolution.
+    ~7,533 grid points with {lat, lon, s4, score}.
     Cached for 15 min server-side.
     """
     global _heatmap_cache

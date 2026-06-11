@@ -58,6 +58,12 @@ def init_db() -> None:
                 CREATE INDEX IF NOT EXISTS idx_loc_ts
                     ON history(lat, lon, ts);
             """)
+            # Migration: add columns introduced after the table was created
+            existing = {row[1] for row in c.execute("PRAGMA table_info(history)")}
+            for col in ("roti", "vtec"):
+                if col not in existing:
+                    c.execute(f"ALTER TABLE history ADD COLUMN {col} REAL")
+                    log.info("DB migration: added column history.%s", col)
         log.info("DB ready: %s", DB_PATH)
     except Exception as exc:
         log.warning("DB init failed (%s) — history will not be persisted", exc)
@@ -71,6 +77,8 @@ def save_snapshot(
     f107_sfu: float | None,
     s4: float | None,
     phi60_rad: float | None,
+    roti: float | None = None,
+    vtec: float | None = None,
 ) -> None:
     """
     Insert one record for this location.
@@ -94,10 +102,10 @@ def save_snapshot(
                 return
 
             c.execute(
-                "INSERT INTO history(ts,lat,lon,score,kp,dst_nt,f107_sfu,s4,phi60_rad)"
-                " VALUES(?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO history(ts,lat,lon,score,kp,dst_nt,f107_sfu,s4,phi60_rad,roti,vtec)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                 (now.isoformat(), rlat, rlon,
-                 score, kp, dst_nt, f107_sfu, s4, phi60_rad),
+                 score, kp, dst_nt, f107_sfu, s4, phi60_rad, roti, vtec),
             )
             # Purge old records while connection is open
             c.execute("DELETE FROM history WHERE ts<?", (ttl_cutoff,))
@@ -116,7 +124,7 @@ def get_history(lat: float, lon: float) -> list[dict]:
     try:
         with _conn() as c:
             rows = c.execute(
-                "SELECT ts,score,kp,dst_nt,f107_sfu,s4,phi60_rad"
+                "SELECT ts,score,kp,dst_nt,f107_sfu,s4,phi60_rad,roti,vtec"
                 " FROM history"
                 " WHERE lat=? AND lon=? AND ts>?"
                 " ORDER BY ts ASC",
@@ -131,6 +139,8 @@ def get_history(lat: float, lon: float) -> list[dict]:
                 "f107":  r["f107_sfu"],
                 "s4":    r["s4"],
                 "phi60": r["phi60_rad"],
+                "roti":  r["roti"],
+                "vtec":  r["vtec"],
             }
             for r in rows
         ]

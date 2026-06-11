@@ -8,7 +8,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>Clima Solar — GNSS</title>
   <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <meta name="apple-mobile-web-app-title" content="Clima Solar">
   <script>window.CLIMA_SOLAR_API = 'https://clima-solar-production.up.railway.app';</script>
   <style>
@@ -62,14 +64,7 @@
 
     /* ── Loading ─────────────────────────────────────────────────────────── */
     #screen-loading { gap: 18px; }
-    #loading-icon {
-      color: var(--dim);
-      animation: float 3s ease-in-out infinite;
-    }
-    @keyframes float {
-      0%, 100% { transform: translateY(0); opacity: .5; }
-      50%       { transform: translateY(-6px); opacity: 1; }
-    }
+    #loading-icon { display: block; }
     #loading-text { color: var(--dim); font-size: 15px; }
 
     /* ── Error screens ───────────────────────────────────────────────────── */
@@ -101,6 +96,32 @@
       padding-top: 20px;
     }
 
+    /* ── Header sun keyframes (usados pelo SVG do header) ───────────────── */
+    @keyframes pulse1 { 0%,100%{r:52;opacity:.55} 50%{r:62;opacity:.15} }
+    @keyframes pulse2 { 0%,100%{r:72;opacity:.35} 50%{r:86;opacity:.08} }
+    @keyframes pulse3 { 0%,100%{r:96;opacity:.2}  50%{r:114;opacity:.04} }
+    @keyframes glow   { 0%,100%{r:38} 50%{r:44} }
+    @keyframes cme-up    { 0%{opacity:0;transform:translateY(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateY(-70px) scale(1.6)} }
+    @keyframes cme-down  { 0%{opacity:0;transform:translateY(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateY(70px)  scale(1.6)} }
+    @keyframes cme-right { 0%{opacity:0;transform:translateX(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateX(70px)  scale(1.6)} }
+    @keyframes cme-left  { 0%{opacity:0;transform:translateX(0) scale(.4)}   20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translateX(-70px) scale(1.6)} }
+    @keyframes cme-ur { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(50px,-50px)  scale(1.6)} }
+    @keyframes cme-ul { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(-50px,-50px) scale(1.6)} }
+    @keyframes cme-dr { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(50px,50px)   scale(1.6)} }
+    @keyframes cme-dl { 0%{opacity:0;transform:translate(0,0) scale(.4)}  20%{opacity:1} 80%{opacity:.4} 100%{opacity:0;transform:translate(-50px,50px)  scale(1.6)} }
+    .p1{animation:pulse1 2.8s ease-in-out infinite}
+    .p2{animation:pulse2 2.8s ease-in-out infinite .4s}
+    .p3{animation:pulse3 2.8s ease-in-out infinite .8s}
+    .gl{animation:glow   2.8s ease-in-out infinite}
+    .c-up   {animation:cme-up    4s ease-out infinite 0s}
+    .c-ur   {animation:cme-ur    4s ease-out infinite .5s}
+    .c-right{animation:cme-right 4s ease-out infinite 1s}
+    .c-dr   {animation:cme-dr    4s ease-out infinite 1.5s}
+    .c-down {animation:cme-down  4s ease-out infinite 2s}
+    .c-dl   {animation:cme-dl    4s ease-out infinite 2.5s}
+    .c-left {animation:cme-left  4s ease-out infinite 3s}
+    .c-ul   {animation:cme-ul    4s ease-out infinite 3.5s}
+
     /* ── Header ──────────────────────────────────────────────────────────── */
     header {
       display: flex;
@@ -110,7 +131,7 @@
       padding-bottom: 4px;
     }
     .logo-icon { color: var(--accent); flex-shrink: 0; }
-    header h1  { font-size: 21px; font-weight: 700; letter-spacing: -.3px; }
+    header h1  { font-size: 21px; font-weight: 700; letter-spacing: -.3px; color: #ffb700; }
     header p   { font-size: 12px; color: var(--dim); margin-top: 1px; }
 
     /* ── Risk card ───────────────────────────────────────────────────────── */
@@ -178,11 +199,26 @@
     }
 
     .ind-card {
+      position: relative;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 15px 15px 13px;
     }
+    .ind-card.full-row { grid-column: 1 / -1; }
+
+    /* trend badge */
+    .trend {
+      position: absolute;
+      top: 9px;
+      right: 11px;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .trend.up     { color: var(--red);    }
+    .trend.down   { color: var(--green);  }
+    .trend.stable { color: var(--dim);    }
     .ind-name {
       font-size: 11px;
       color: var(--dim);
@@ -217,6 +253,90 @@
     .ind-bar-fill.medium { background: var(--yellow); }
     .ind-bar-fill.high   { background: var(--red);    }
     .ind-bar-fill.na     { background: var(--border); }
+
+    /* ── Clickable indicator cards ───────────────────────────────────────── */
+    .ind-card { cursor: pointer; transition: border-color .2s, box-shadow .2s, transform .1s; }
+    .ind-card:hover  { border-color: rgba(88,166,255,.45); box-shadow: 0 0 16px rgba(88,166,255,.1); }
+    .ind-card:active { transform: scale(.98); }
+    .ind-arrow {
+      position: absolute;
+      bottom: 9px;
+      right: 10px;
+      font-size: 16px;
+      color: var(--border);
+      transition: color .2s;
+      line-height: 1;
+      pointer-events: none;
+      font-weight: 300;
+    }
+    .ind-card:hover .ind-arrow { color: var(--accent); }
+
+    /* ── Detail sheet ────────────────────────────────────────────────────── */
+    #detail-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s;
+    }
+    #detail-overlay.open { opacity: 1; pointer-events: all; }
+    #detail-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 100%;
+      max-width: 480px;
+      max-height: 82dvh;
+      overflow-y: auto;
+      background: #1c2128;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 20px 20px 0 0;
+      z-index: 101;
+      padding: 0 20px 40px;
+      transition: transform .32s cubic-bezier(.32,1,.32,1);
+      overscroll-behavior: contain;
+    }
+    #detail-sheet.open { transform: translateX(-50%) translateY(0); }
+    #detail-close {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color .15s, color .15s;
+      flex-shrink: 0;
+    }
+    #detail-close:hover { border-color: var(--red); color: var(--red); }
+    .detail-chart-wrap { position: relative; height: 150px; margin-top: 8px; }
+    .detail-empty {
+      font-size: 13px;
+      color: var(--dim);
+      text-align: center;
+      padding: 30px 0 16px;
+    }
+    .detail-status {
+      margin-top: 16px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      padding: 9px 14px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+    }
 
     /* ── Data age note ───────────────────────────────────────────────────── */
     #data-note {
@@ -258,6 +378,184 @@
     #refresh-btn.spinning .spin-icon { animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── Info button ────────────────────────────────────────────────────── */
+    #info-btn {
+      margin-left: auto;
+      flex-shrink: 0;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 17px;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    #info-btn:hover  { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,.08); }
+    #info-btn:active { transform: scale(.93); }
+
+    /* ── Info overlay + sheet ───────────────────────────────────────────── */
+    #info-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s;
+    }
+    #info-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    #info-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 100%;
+      max-width: 480px;
+      max-height: 82dvh;
+      overflow-y: auto;
+      background: #1c2128;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 20px 20px 0 0;
+      z-index: 101;
+      padding: 0 20px 40px;
+      transition: transform .32s cubic-bezier(.32,1,.32,1);
+      overscroll-behavior: contain;
+    }
+    #info-sheet.open {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* drag handle */
+    .sheet-handle {
+      width: 38px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 12px auto 0;
+    }
+
+    /* sheet header row */
+    .sheet-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 0 14px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .sheet-topbar h2 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -.2px;
+    }
+    #info-close {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color .15s, color .15s;
+    }
+    #info-close:hover { border-color: var(--red); color: var(--red); }
+
+    /* sheet sections */
+    .sheet-section { margin-bottom: 22px; }
+    .sheet-section h3 {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .sheet-section p {
+      font-size: 14px;
+      color: var(--dim);
+      line-height: 1.6;
+    }
+
+    /* index rows */
+    .idx-row {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(48,54,61,.6);
+    }
+    .idx-row:last-child { border-bottom: none; }
+    .idx-tag {
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(88,166,255,.12);
+      color: var(--accent);
+      border-radius: 6px;
+      padding: 2px 8px;
+      min-width: 54px;
+      text-align: center;
+    }
+    .idx-desc {
+      font-size: 13px;
+      color: var(--dim);
+      line-height: 1.5;
+    }
+
+    /* source rows */
+    .src-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(48,54,61,.6);
+      font-size: 13px;
+    }
+    .src-row:last-child { border-bottom: none; }
+    .src-params { color: var(--text); font-weight: 600; min-width: 80px; flex-shrink: 0; }
+    .src-name   { color: var(--dim); line-height: 1.5; }
+
+    /* ── Map ─────────────────────────────────────────────────────────────── */
+    #map-wrap {
+      width: 100%;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--card);
+    }
+    #map { height: 210px; width: 100%; }
+
+    /* Leaflet controls — dark theme override */
+    .leaflet-control-zoom a {
+      background: var(--card) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+    .leaflet-bar { border-color: var(--border) !important; box-shadow: none !important; }
+    .leaflet-control-attribution {
+      background: rgba(13,17,23,.75) !important;
+      color: var(--dim) !important;
+      font-size: 10px !important;
+    }
+    .leaflet-control-attribution a { color: var(--accent) !important; }
+
     /* ── Stars bg (pure CSS, no images) ─────────────────────────────────── */
     body::before {
       content: '';
@@ -286,16 +584,58 @@
      LOADING
 ════════════════════════════════════════════════════════════════════════════ -->
 <div id="screen-loading" class="screen active">
-  <svg id="loading-icon" width="72" height="72" viewBox="0 0 24 24" fill="none">
-    <rect x="8.5" y="8.5" width="7" height="7" rx="1.2" fill="currentColor"/>
-    <rect x="1" y="10" width="6.5" height="4" rx="1" fill="currentColor" opacity=".55"/>
-    <rect x="16.5" y="10" width="6.5" height="4" rx="1" fill="currentColor" opacity=".55"/>
-    <line x1="12" y1="8.5" x2="12" y2="4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-    <circle cx="12" cy="3.5" r="1.5" fill="currentColor"/>
-    <path d="M14.5 6 Q17 3.5 14.5 1" stroke="currentColor" stroke-width="1" fill="none" opacity=".45" stroke-linecap="round"/>
-    <path d="M16 7 Q20 3.5 16 0" stroke="currentColor" stroke-width="1" fill="none" opacity=".25" stroke-linecap="round"/>
-    <line x1="12" y1="15.5" x2="12" y2="19.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-    <circle cx="12" cy="20.5" r="1.5" fill="currentColor" opacity=".5"/>
+  <svg id="loading-icon" width="120" height="120" viewBox="0 0 380 390" role="img" style="background:transparent">
+    <defs>
+      <radialGradient id="sg-load" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"  stop-color="#fff7c0"/>
+        <stop offset="35%" stop-color="#ffb700"/>
+        <stop offset="75%" stop-color="#ff6a00"/>
+        <stop offset="100%" stop-color="#c83200" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="cor-load" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"  stop-color="#ff8c00" stop-opacity=".6"/>
+        <stop offset="100%" stop-color="#ff4400" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <style>
+      @keyframes pulse1-l{0%,100%{r:52;opacity:.55}50%{r:62;opacity:.15}}
+      @keyframes pulse2-l{0%,100%{r:72;opacity:.35}50%{r:86;opacity:.08}}
+      @keyframes pulse3-l{0%,100%{r:96;opacity:.2}50%{r:114;opacity:.04}}
+      @keyframes glow-l{0%,100%{r:38}50%{r:44}}
+      @keyframes lcme-up   {0%{opacity:0;transform:translateY(0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translateY(-70px) scale(1.6)}}
+      @keyframes lcme-down {0%{opacity:0;transform:translateY(0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translateY(70px) scale(1.6)}}
+      @keyframes lcme-right{0%{opacity:0;transform:translateX(0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translateX(70px) scale(1.6)}}
+      @keyframes lcme-left {0%{opacity:0;transform:translateX(0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translateX(-70px) scale(1.6)}}
+      @keyframes lcme-ur{0%{opacity:0;transform:translate(0,0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translate(50px,-50px) scale(1.6)}}
+      @keyframes lcme-ul{0%{opacity:0;transform:translate(0,0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translate(-50px,-50px) scale(1.6)}}
+      @keyframes lcme-dr{0%{opacity:0;transform:translate(0,0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translate(50px,50px) scale(1.6)}}
+      @keyframes lcme-dl{0%{opacity:0;transform:translate(0,0) scale(.4)}20%{opacity:1}80%{opacity:.4}100%{opacity:0;transform:translate(-50px,50px) scale(1.6)}}
+      .lp1{animation:pulse1-l 2.8s ease-in-out infinite}
+      .lp2{animation:pulse2-l 2.8s ease-in-out infinite .4s}
+      .lp3{animation:pulse3-l 2.8s ease-in-out infinite .8s}
+      .lgl{animation:glow-l   2.8s ease-in-out infinite}
+      .lup   {animation:lcme-up    4s ease-out infinite 0s}
+      .lur   {animation:lcme-ur    4s ease-out infinite .5s}
+      .lright{animation:lcme-right 4s ease-out infinite 1s}
+      .ldr   {animation:lcme-dr    4s ease-out infinite 1.5s}
+      .ldown {animation:lcme-down  4s ease-out infinite 2s}
+      .ldl   {animation:lcme-dl    4s ease-out infinite 2.5s}
+      .lleft {animation:lcme-left  4s ease-out infinite 3s}
+      .lul   {animation:lcme-ul    4s ease-out infinite 3.5s}
+    </style>
+    <circle class="lp3" cx="190" cy="195" r="96"  fill="none" stroke="#ff6a00" stroke-width="1.5"/>
+    <circle class="lp2" cx="190" cy="195" r="72"  fill="none" stroke="#ffaa00" stroke-width="2"/>
+    <circle class="lp1" cx="190" cy="195" r="52"  fill="none" stroke="#ffcc00" stroke-width="2.5"/>
+    <g class="lup"    style="transform-origin:190px 149px"><ellipse cx="190" cy="149" rx="7" ry="18" fill="#ff7700" opacity=".85"/></g>
+    <g class="lur"    style="transform-origin:224px 161px"><ellipse cx="224" cy="161" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(45,224,161)"/></g>
+    <g class="lright" style="transform-origin:236px 195px"><ellipse cx="236" cy="195" rx="18" ry="7" fill="#ff7700" opacity=".85"/></g>
+    <g class="ldr"    style="transform-origin:224px 229px"><ellipse cx="224" cy="229" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(-45,224,229)"/></g>
+    <g class="ldown"  style="transform-origin:190px 241px"><ellipse cx="190" cy="241" rx="7" ry="18" fill="#ff7700" opacity=".85"/></g>
+    <g class="ldl"    style="transform-origin:156px 229px"><ellipse cx="156" cy="229" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(45,156,229)"/></g>
+    <g class="lleft"  style="transform-origin:144px 195px"><ellipse cx="144" cy="195" rx="18" ry="7" fill="#ff7700" opacity=".85"/></g>
+    <g class="lul"    style="transform-origin:156px 161px"><ellipse cx="156" cy="161" rx="7" ry="18" fill="#ff8800" opacity=".85" transform="rotate(-45,156,161)"/></g>
+    <circle cx="190" cy="195" r="46" fill="url(#cor-load)"/>
+    <circle class="lgl" cx="190" cy="195" r="38" fill="url(#sg-load)"/>
   </svg>
   <p id="loading-text">Obtendo sua localização…</p>
 </div>
@@ -339,21 +679,53 @@
 <div id="screen-app" class="screen">
 
   <!-- Header -->
-  <header>
-    <svg class="logo-icon" width="38" height="38" viewBox="0 0 24 24" fill="none">
-      <rect x="8.5" y="8.5" width="7" height="7" rx="1.2" fill="currentColor"/>
-      <rect x="1" y="10" width="6.5" height="4" rx="1" fill="currentColor" opacity=".55"/>
-      <rect x="16.5" y="10" width="6.5" height="4" rx="1" fill="currentColor" opacity=".55"/>
-      <line x1="12" y1="8.5" x2="12" y2="4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-      <circle cx="12" cy="3.5" r="1.5" fill="currentColor"/>
-      <path d="M14.5 6 Q17 3.5 14.5 1" stroke="currentColor" stroke-width="1" fill="none" opacity=".45" stroke-linecap="round"/>
-      <path d="M16 7 Q20 3.5 16 0" stroke="currentColor" stroke-width="1" fill="none" opacity=".25" stroke-linecap="round"/>
+  <div id="app-header" style="position:relative;overflow:hidden;height:64px;border-bottom:1px solid #1a1a2a;width:100%;">
+
+    <svg id="bg-sol" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;" viewBox="0 0 380 64" preserveAspectRatio="xMinYMin slice">
+      <defs>
+        <radialGradient id="sg-h" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"  stop-color="#fff7c0"/>
+          <stop offset="35%" stop-color="#ffb700"/>
+          <stop offset="75%" stop-color="#ff6a00"/>
+          <stop offset="100%" stop-color="#c83200" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="cor-h" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"  stop-color="#ff8c00" stop-opacity=".5"/>
+          <stop offset="100%" stop-color="#ff4400" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <style>
+        @keyframes bg-onda-anim{0%{opacity:var(--op-start);r:10;stroke-width:14}100%{opacity:0;r:300;stroke-width:.5}}
+        @keyframes bg-glow{0%,100%{r:14}50%{r:17}}
+        #bg-ondas{--dur:16s;--op-start:.18}
+        .bg-onda{fill:none}
+        .bo1{animation:bg-onda-anim var(--dur) ease-out infinite 0s}
+        .bo2{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5)}
+        .bo3{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5 * 2)}
+        .bo4{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5 * 3)}
+        .bo5{animation:bg-onda-anim var(--dur) ease-out infinite calc(var(--dur) / 5 * 4)}
+        .bg-gl{animation:bg-glow 2.8s ease-in-out infinite}
+      </style>
+      <g id="bg-ondas">
+        <circle class="bg-onda bo1" cx="32" cy="32" r="10" stroke="#ff8800"/>
+        <circle class="bg-onda bo2" cx="32" cy="32" r="10" stroke="#ff8800"/>
+        <circle class="bg-onda bo3" cx="32" cy="32" r="10" stroke="#ff8800"/>
+        <circle class="bg-onda bo4" cx="32" cy="32" r="10" stroke="#ff8800"/>
+        <circle class="bg-onda bo5" cx="32" cy="32" r="10" stroke="#ff8800"/>
+      </g>
+      <circle cx="32" cy="32" r="22" fill="url(#cor-h)"/>
+      <circle class="bg-gl" cx="32" cy="32" r="14" fill="url(#sg-h)"/>
     </svg>
-    <div>
-      <h1>Clima Solar</h1>
-      <p>Monitoramento de Clima Solar</p>
+
+    <div style="position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:100%;">
+      <div style="padding-left:52px;">
+        <div style="color:#ffb700;font-size:16px;font-weight:600;">Clima Solar</div>
+        <div style="color:#888;font-size:11px;">Monitoramento de Clima Solar</div>
+      </div>
+      <button id="info-btn" onclick="openInfo()" aria-label="Informações">ⓘ</button>
     </div>
-  </header>
+
+  </div>
 
   <!-- Risk card -->
   <div id="risk-card">
@@ -365,40 +737,90 @@
     <div class="score-wrap">
       <div class="score-track"><div id="score-fill"></div></div>
       <div id="score-text">Score composto: —</div>
+      <div style="margin-top:8px;font-size:10px;color:#666;text-align:center;line-height:1.4;">
+        ⏱ S4 e σφ com até 33 min de defasagem · VTEC e ROTI do mesmo horário de ~2 dias atrás · Kp, Dst e F10.7 em tempo real
+      </div>
     </div>
   </div>
 
   <!-- Indicator cards -->
   <div id="indicators">
 
-    <div class="ind-card">
+    <div class="ind-card" onclick="openDetail('kp')">
+      <span class="trend stable" id="trend-kp">→</span>
       <div class="ind-name">Índice Kp</div>
       <div class="ind-value" id="val-kp">—</div>
       <div class="ind-unit">escala 0 – 9</div>
       <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-kp" style="width:0%"></div></div>
+      <span class="ind-arrow">›</span>
     </div>
 
-    <div class="ind-card">
+    <div class="ind-card" onclick="openDetail('dst')">
+      <span class="trend stable" id="trend-dst">→</span>
       <div class="ind-name">Dst</div>
       <div class="ind-value" id="val-dst">—</div>
       <div class="ind-unit">nanoTesla (nT)</div>
       <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-dst" style="width:0%"></div></div>
+      <span class="ind-arrow">›</span>
     </div>
 
-    <div class="ind-card">
+    <div class="ind-card" onclick="openDetail('s4')">
+      <span class="trend stable" id="trend-s4">→</span>
       <div class="ind-name">S4 — Cintilação</div>
       <div class="ind-value" id="val-s4">—</div>
       <div class="ind-unit">amplitude (0 – 1)</div>
       <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-s4" style="width:0%"></div></div>
+      <span class="ind-arrow">›</span>
     </div>
 
-    <div class="ind-card">
+    <div class="ind-card" onclick="openDetail('f107')">
+      <span class="trend stable" id="trend-f107">→</span>
       <div class="ind-name">F10.7</div>
       <div class="ind-value" id="val-f107">—</div>
       <div class="ind-unit">fluxo solar (sfu)</div>
       <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-f107" style="width:0%"></div></div>
+      <span class="ind-arrow">›</span>
     </div>
 
+    <div class="ind-card" onclick="openDetail('phi60')">
+      <span class="trend stable" id="trend-phi60">→</span>
+      <div class="ind-name">Sigma_phi — Fase</div>
+      <div class="ind-value" id="val-phi60">—</div>
+      <div class="ind-unit">radianos</div>
+      <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-phi60" style="width:0%"></div></div>
+      <span class="ind-arrow">›</span>
+    </div>
+
+    <div class="ind-card" onclick="openDetail('vtec')">
+      <span class="trend stable" id="trend-vtec">→</span>
+      <div class="ind-name">VTEC</div>
+      <div class="ind-value" id="val-vtec">—</div>
+      <div class="ind-unit">TECU</div>
+      <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-vtec" style="width:0%"></div></div>
+      <span class="ind-arrow">›</span>
+    </div>
+
+    <div class="ind-card full-row" onclick="openDetail('roti')">
+      <span class="trend stable" id="trend-roti">→</span>
+      <div class="ind-name">ROTI — Irregularidades</div>
+      <div class="ind-value" id="val-roti">—</div>
+      <div class="ind-unit">TECU/min</div>
+      <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-roti" style="width:0%"></div></div>
+      <span class="ind-arrow">›</span>
+    </div>
+
+  </div>
+
+  <!-- Map -->
+  <div id="map-wrap" style="display:none;position:relative;">
+    <div id="map"></div>
+    <button id="heat-toggle" onclick="toggleHeatmap()" title="Ligar/desligar heatmap ionosférico"
+      style="position:absolute;bottom:8px;right:8px;z-index:2000;
+             background:#161b22cc;border:1px solid #30363d;color:#e6edf3;
+             border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;
+             backdrop-filter:blur(4px);transition:border-color .15s,color .15s;">
+      🌡 Heatmap
+    </button>
   </div>
 
   <!-- Offline banner -->
@@ -426,6 +848,93 @@
 
 </div><!-- /screen-app -->
 
+<!-- ══════════════════════════════════════════════════════════════════════════
+     INFO SHEET
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="info-overlay" onclick="closeInfo()"></div>
+
+<div id="info-sheet" role="dialog" aria-modal="true" aria-label="Informações">
+  <div class="sheet-handle"></div>
+  <div class="sheet-topbar">
+    <h2>Sobre o Clima Solar</h2>
+    <button id="info-close" onclick="closeInfo()" aria-label="Fechar">×</button>
+  </div>
+
+  <!-- Como funciona -->
+  <div class="sheet-section">
+    <h3>Como funciona</h3>
+    <p>O Clima Solar monitora condições do espaço que afetam sinais GNSS (GPS). Um score composto de 0 a 1 é calculado em tempo real com base em múltiplos índices geofísicos.</p>
+  </div>
+
+  <!-- Aviso de uso -->
+  <div class="sheet-section">
+    <div style="background:rgba(255,180,0,0.08);border-left:3px solid #ffb700;padding:10px;border-radius:6px;">
+      <p style="font-size:11px;color:#aaa;line-height:1.6;margin:0;">
+        ⚠️ <strong style="color:#ccc;">Aviso de uso</strong><br>
+        O Clima Solar é uma ferramenta de apoio à decisão baseada em dados públicos de clima espacial.
+        Não substitui análise técnica especializada. S4 e σφ possuem defasagem de até 33 minutos;
+        VTEC e ROTI são estimativas baseadas no mesmo horário do dia mais recente publicado pelo
+        EMBRACE (~2 dias). Recomenda-se validação com profissional qualificado para
+        operações críticas de GNSS.
+      </p>
+    </div>
+  </div>
+
+  <!-- Fontes de dados -->
+  <div class="sheet-section">
+    <h3>Fontes de dados</h3>
+    <div class="src-row">
+      <span class="src-params">Kp · F10.7</span>
+      <span class="src-name">NOAA Space Weather Prediction Center (swpc.noaa.gov)</span>
+    </div>
+    <div class="src-row">
+      <span class="src-params">Dst</span>
+      <span class="src-name">GFZ Potsdam / Kyoto World Data Center</span>
+    </div>
+    <div class="src-row">
+      <span class="src-params">S4 · σφ</span>
+      <span class="src-name">EMBRACE/INPE — Monitoramento Brasileiro do Clima Espacial</span>
+    </div>
+    <div class="src-row">
+      <span class="src-params">VTEC · ROTI</span>
+      <span class="src-name">EMBRACE/INPE — mapas TEC (AMAP) e rede GNSS 30 s (GTEX), valores do mesmo horário do dia mais recente publicado (~2 dias)</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     DETAIL SHEET
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="detail-overlay" onclick="closeDetail()"></div>
+
+<div id="detail-sheet" role="dialog" aria-modal="true" aria-label="Detalhes do parâmetro">
+  <div class="sheet-handle"></div>
+  <div class="sheet-topbar">
+    <div>
+      <h2 id="detail-param-name">—</h2>
+      <div id="detail-param-unit" style="font-size:12px;color:var(--dim);margin-top:2px;"></div>
+    </div>
+    <button id="detail-close" onclick="closeDetail()" aria-label="Fechar">×</button>
+  </div>
+
+  <div class="sheet-section">
+    <h3>O que é</h3>
+    <p id="detail-text"></p>
+  </div>
+
+  <div class="sheet-section">
+    <h3>Últimas 24 horas</h3>
+    <div id="detail-chart-empty" class="detail-empty">Coletando histórico — disponível após algumas atualizações</div>
+    <div id="detail-chart-wrap" class="detail-chart-wrap" style="display:none;">
+      <canvas id="detail-chart"></canvas>
+    </div>
+  </div>
+
+  <div id="detail-status" class="detail-status">Valor atual: —</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 'use strict';
 
@@ -436,7 +945,10 @@ const API = (typeof window.CLIMA_SOLAR_API !== 'undefined')
   ? window.CLIMA_SOLAR_API.replace(/\/$/, '')
   : 'http://localhost:8000';
 const AUTO_REFRESH_MS = 5 * 60 * 1000; // 5 min
-const CACHE_KEY = 'clima_solar_last_data';
+const CACHE_KEY   = 'clima_solar_last_data';
+const TREND_KEY   = 'clima_solar_trend';
+const HISTORY_KEY = 'clima_solar_history';
+const HISTORY_MAX = 24;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let userLat = null;
@@ -507,6 +1019,8 @@ async function startApp() {
     userLon = pos.coords.longitude;
 
     document.getElementById('loading-text').textContent = 'Carregando dados de clima espacial…';
+    // Pede permissão de notificação logo após a geolocalização ser concedida
+    await requestNotificationPermission();
     await doFetch();
     scheduleAutoRefresh();
   } catch (err) {
@@ -546,6 +1060,9 @@ async function doFetch() {
     }
     render(data, false);
     showScreen('screen-app');
+    initMap(userLat, userLon);
+    fetchHeatmap();
+    fetchServerHistory();
   } catch (err) {
     console.error('Fetch error:', err);
     // Tenta dados offline do localStorage
@@ -554,6 +1071,7 @@ async function doFetch() {
       try {
         render(JSON.parse(saved), true);
         showScreen('screen-app');
+        if (userLat && userLon) initMap(userLat, userLon);
       } catch {
         showScreen('screen-api-error');
       }
@@ -580,6 +1098,12 @@ function render(data, offline = false) {
   const raw    = data.raw || {};
   const age    = data.data_age || {};
 
+  // ── Ondas de fundo reagem ao score
+  updateWaves(score);
+
+  // ── Notificação se o nível de risco mudou
+  checkRiskChange(lvlKey);
+
   // ── Risk card
   const card = document.getElementById('risk-card');
   card.className = lvl.cls;
@@ -590,11 +1114,23 @@ function render(data, offline = false) {
   document.getElementById('score-text').textContent   =
     `Score composto: ${score.toFixed(2)} de 1.00`;
 
-  // ── Indicator cards
-  setInd('kp',   raw.kp,       v => v.toFixed(1),         kpLvl(raw.kp),   barW('kp',   raw.kp));
-  setInd('dst',  raw.dst_nt,   v => (v >= 0 ? '+' : '') + Math.round(v), dstLvl(raw.dst_nt), barW('dst', raw.dst_nt));
-  setInd('s4',   raw.s4,       v => v.toFixed(3),          s4Lvl(raw.s4),   barW('s4',   raw.s4));
-  setInd('f107', raw.f107_sfu, v => String(Math.round(v)), f107Lvl(raw.f107_sfu), barW('f107', raw.f107_sfu));
+  // ── Indicator cards + trend
+  const phi60 = raw.phi60_rad ?? null;
+  const vtec  = raw.vtec_tecu ?? null;
+  const roti  = raw.roti_tecu_min ?? null;
+  saveTrend({ kp: raw.kp, dst: raw.dst_nt, s4: raw.s4, f107: raw.f107_sfu, phi60, vtec, roti });
+  setInd('kp',    raw.kp,       v => v.toFixed(1),                            kpLvl(raw.kp),      barW('kp',    raw.kp));
+  setInd('dst',   raw.dst_nt,   v => (v >= 0 ? '+' : '') + Math.round(v),     dstLvl(raw.dst_nt), barW('dst',   raw.dst_nt));
+  setInd('s4',    raw.s4,       v => v.toFixed(3),                             s4Lvl(raw.s4),      barW('s4',    raw.s4));
+  setInd('f107',  raw.f107_sfu, v => String(Math.round(v)),                    f107Lvl(raw.f107_sfu), barW('f107', raw.f107_sfu));
+  setInd('phi60', phi60,        v => v.toFixed(3),                             phi60Lvl(phi60),    barW('phi60', phi60));
+  setInd('vtec',  vtec,         v => v.toFixed(1),                             vtecLvl(vtec),      barW('vtec',  vtec));
+  setInd('roti',  roti,         v => v.toFixed(3),                             rotiLvl(roti),      barW('roti',  roti));
+  ['kp','dst','s4','f107','phi60','vtec','roti'].forEach(k => renderTrend(k));
+
+  // ── Histórico (dados salvos no localStorage para uso nos modais de detalhe)
+  saveHistory({ ts: new Date().toISOString(), score, kp: raw.kp, dst: raw.dst_nt,
+                s4: raw.s4, f107: raw.f107_sfu, phi60, vtec, roti });
 
   // ── Data age note
   const noteEl = document.getElementById('data-note');
@@ -605,6 +1141,10 @@ function render(data, offline = false) {
   }
   if (raw.s4 == null) {
     notes.push('S4 indisponível para esta localização (cobertura da América do Sul)');
+  }
+  if (age.vtec_map_min != null && (raw.vtec_tecu != null || raw.roti_tecu_min != null)) {
+    const d = Math.round(age.vtec_map_min / 1440);
+    notes.push(`🗺 VTEC/ROTI: valor observado no mesmo horário há ${d} dia${d > 1 ? 's' : ''} (EMBRACE publica com defasagem)`);
   }
   if (notes.length) {
     noteEl.textContent = notes.join(' · ');
@@ -637,21 +1177,499 @@ function setInd(key, value, fmt, lvlCls, widthPct) {
 }
 
 // ── Level classifiers ─────────────────────────────────────────────────────────
-function kpLvl(v)   { return v == null ? 'na' : v < 4  ? 'low' : v < 6   ? 'medium' : 'high'; }
-function dstLvl(v)  { return v == null ? 'na' : v > -30 ? 'low' : v > -100? 'medium' : 'high'; }
-function s4Lvl(v)   { return v == null ? 'na' : v < 0.3 ? 'low' : v < 0.6 ? 'medium' : 'high'; }
-function f107Lvl(v) { return v == null ? 'na' : v < 100 ? 'low' : v < 150 ? 'medium' : 'high'; }
+function kpLvl(v)    { return v == null ? 'na' : v < 4   ? 'low' : v < 6   ? 'medium' : 'high'; }
+function dstLvl(v)   { return v == null ? 'na' : v > -30 ? 'low' : v > -100? 'medium' : 'high'; }
+function s4Lvl(v)    { return v == null ? 'na' : v < 0.3 ? 'low' : v < 0.6 ? 'medium' : 'high'; }
+function f107Lvl(v)  { return v == null ? 'na' : v < 100 ? 'low' : v < 150 ? 'medium' : 'high'; }
+function phi60Lvl(v) { return v == null ? 'na' : v < 0.1 ? 'low' : v < 0.5 ? 'medium' : 'high'; }
+function vtecLvl(v)  { return v == null ? 'na' : v < 20  ? 'low' : v < 60  ? 'medium' : 'high'; }
+function rotiLvl(v)  { return v == null ? 'na' : v < 0.25? 'low' : v < 0.5 ? 'medium' : 'high'; }
 
 // ── Bar widths ────────────────────────────────────────────────────────────────
 function barW(key, v) {
   if (v == null) return 0;
   switch (key) {
-    case 'kp':   return Math.min(v / 9 * 100, 100);
-    case 'dst':  return Math.min(Math.max(-v, 0) / 300 * 100, 100);
-    case 's4':   return Math.min(v * 100, 100);
-    case 'f107': return Math.min(v / 250 * 100, 100);
+    case 'kp':    return Math.min(v / 9 * 100, 100);
+    case 'dst':   return Math.min(Math.max(-v, 0) / 300 * 100, 100);
+    case 's4':    return Math.min(v * 100, 100);
+    case 'f107':  return Math.min(v / 250 * 100, 100);
+    case 'phi60': return Math.min(v / 1.0 * 100, 100);
+    case 'vtec':  return Math.min(v / 100 * 100, 100);
+    case 'roti':  return Math.min(v / 1.0 * 100, 100);
   }
   return 0;
+}
+
+// ── Trend ─────────────────────────────────────────────────────────────────────
+function saveTrend(reading) {
+  let h = JSON.parse(localStorage.getItem(TREND_KEY) || '[]');
+  h.push(reading);
+  if (h.length > 2) h = h.slice(-2);
+  localStorage.setItem(TREND_KEY, JSON.stringify(h));
+}
+function renderTrend(key) {
+  const el = document.getElementById(`trend-${key}`);
+  if (!el) return;
+  const h = JSON.parse(localStorage.getItem(TREND_KEY) || '[]');
+  if (h.length < 2) { el.textContent = '→'; el.className = 'trend stable'; return; }
+  const prev = h[h.length - 2][key];
+  const curr = h[h.length - 1][key];
+  if (prev == null || curr == null) { el.textContent = '→'; el.className = 'trend stable'; return; }
+  const pct = Math.abs(curr - prev) / (Math.abs(prev) + 1e-9);
+  if (pct < 0.05) { el.textContent = '→'; el.className = 'trend stable'; return; }
+  // Dst: mais negativo = pior (↑ risk)
+  const worse = key === 'dst' ? curr < prev : curr > prev;
+  el.textContent = worse ? '↑' : '↓';
+  el.className   = worse ? 'trend up' : 'trend down';
+}
+
+// ── Histórico ─────────────────────────────────────────────────────────────────
+let histChart = null;
+let histTab   = 'score';
+
+function saveHistory(entry) {
+  let h = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  h.push(entry);
+  if (h.length > HISTORY_MAX) h = h.slice(-HISTORY_MAX);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+}
+
+
+async function fetchServerHistory() {
+  if (!userLat || !userLon) return;
+  try {
+    const url = `${API}/history?lat=${userLat.toFixed(5)}&lon=${userLon.toFixed(5)}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.entries?.length) return;
+    // Servidor é a fonte primária — substitui histórico local
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(data.entries));
+  } catch (e) {
+    console.warn('History server fetch failed, using local cache:', e);
+  }
+}
+
+function renderHistory() {
+  const h       = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  const emptyEl = document.getElementById('history-empty');
+  const wrapEl  = document.getElementById('history-chart-wrap');
+
+  if (!h.length) {
+    emptyEl.style.display = 'block';
+    wrapEl.style.display  = 'none';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  wrapEl.style.display  = 'block';
+
+  const labels = h.map(e => {
+    const d = new Date(e.ts);
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  });
+  const values = h.map(e => e[histTab] ?? null);
+
+  const yScales = {
+    score: { min: 0, max: 1 },
+    kp:    { min: 0, max: 9 },
+    dst:   {},                   // auto — valores negativos
+    s4:    { min: 0, max: 1 },
+    phi60: { min: 0, max: 1 },
+    vtec:  { min: 0 },
+    roti:  { min: 0 },
+  };
+  const yOpts = yScales[histTab] || {};
+
+  const gridColor = 'rgba(255,255,255,.05)';
+  const tickColor = '#8b949e';
+
+  if (histChart) {
+    histChart.data.labels = labels;
+    histChart.data.datasets[0].data = values;
+    Object.assign(histChart.options.scales.y, { min: undefined, max: undefined, ...yOpts });
+    histChart.update('none');
+    return;
+  }
+
+  const ctx = document.getElementById('history-chart').getContext('2d');
+  histChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: '#ffb700',
+        borderWidth: 2.5,
+        backgroundColor: 'rgba(255,183,0,0.08)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointBackgroundColor: '#ffb700',
+        spanGaps: true,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161b22',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          titleColor: '#e6edf3',
+          bodyColor: '#8b949e',
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: tickColor, font: { size: 10 }, maxRotation: 0 },
+          grid:  { color: gridColor },
+        },
+        y: {
+          ...yOpts,
+          ticks: { color: tickColor, font: { size: 10 } },
+          grid:  { color: gridColor },
+        },
+      },
+    },
+  });
+}
+
+// ── Background waves ──────────────────────────────────────────────────────────
+function updateWaves(score) {
+  const ondas = document.getElementById('bg-ondas');
+  if (!ondas) return;
+  let dur, op, stroke;
+  if (score < 0.3) {
+    dur = 16 - score * 10;
+    op  = 0.12 + score * 0.4;
+    stroke = '#ff8800';
+  } else if (score < 0.6) {
+    const t = (score - 0.3) / 0.3;
+    dur = 13 - t * 3;
+    op  = 0.24 + t * 0.18;
+    stroke = '#ffcc00';
+  } else {
+    const t = (score - 0.6) / 0.4;
+    dur = 10 - t * 3;
+    op  = 0.42 + t * 0.2;
+    stroke = '#ff3300';
+  }
+  ondas.style.setProperty('--dur', dur.toFixed(1) + 's');
+  ondas.style.setProperty('--op-start', op.toFixed(2));
+  ondas.querySelectorAll('.bg-onda').forEach(c => c.setAttribute('stroke', stroke));
+}
+
+// ── Info sheet ────────────────────────────────────────────────────────────────
+function openInfo() {
+  document.getElementById('info-overlay').classList.add('open');
+  document.getElementById('info-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeInfo() {
+  document.getElementById('info-overlay').classList.remove('open');
+  document.getElementById('info-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+// Fecha com ESC no desktop
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeInfo(); closeDetail(); } });
+
+// ── Detail sheet ──────────────────────────────────────────────────────────────
+let detailChart = null;
+
+const PARAM_INFO = {
+  kp: {
+    name: 'Índice Geomagnético Planetário', unit: 'escala 0 – 9', histKey: 'kp',
+    text: 'O Kp mede o nível global de atividade geomagnética em janelas de 3 horas, numa escala de 0 a 9. É calculado a partir de 13 observatórios magnéticos distribuídos pelo mundo. Valores até 3 indicam condições calmas. Acima de 5 caracteriza uma tempestade geomagnética, que comprime a magnetosfera, perturba a ionosfera e pode causar erros de vários metros no posicionamento GNSS. Em tempestades extremas (Kp ≥ 8), receptores podem perder o sinal completamente.',
+    lvlFn: kpLvl, fmtFn: v => v.toFixed(1), yScale: { min: 0, max: 9 },
+  },
+  dst: {
+    name: 'Disturbance Storm-Time', unit: 'nanoTesla (nT)', histKey: 'dst',
+    text: 'O Dst mede distúrbios na componente horizontal do campo magnético terrestre, originados na corrente anelar equatorial. Em condições normais fica próximo de zero. Durante tempestades geomagnéticas cai abruptamente para valores negativos: abaixo de -30 nT indica tempestade fraca, abaixo de -100 nT indica tempestade forte, e abaixo de -250 nT indica tempestade extrema. Quanto mais negativo o Dst, maior a perturbação ionosférica e o erro no sinal GNSS.',
+    lvlFn: dstLvl, fmtFn: v => (v >= 0 ? '+' : '') + Math.round(v), yScale: {},
+  },
+  s4: {
+    name: 'Índice de Cintilação em Amplitude', unit: 'adimensional (0 – 1)', histKey: 's4',
+    text: 'O S4 mede flutuações rápidas na intensidade do sinal GNSS causadas por irregularidades no plasma ionosférico, como as bolhas ionosféricas. É calculado como o desvio-padrão normalizado da potência do sinal num intervalo de 60 segundos. Valores abaixo de 0,3 são desprezíveis. Entre 0,3 e 0,6 há degradação moderada da precisão e risco de perda de ciclos. Acima de 0,6 a cintilação é severa e pode causar perda total de rastreio do satélite. No Brasil, a região equatorial e a anomalia de Appleton-Hartley são as mais afetadas, especialmente entre 20h e 24h hora local.',
+    lvlFn: s4Lvl, fmtFn: v => v.toFixed(3), yScale: { min: 0, max: 1 },
+  },
+  f107: {
+    name: 'Fluxo de Rádio Solar', unit: 'unidades de fluxo solar (sfu)', histKey: 'f107',
+    text: 'O F10.7 mede a intensidade do ruído de rádio solar em 10,7 cm de comprimento de onda, expresso em unidades de fluxo solar (sfu). É um indicador-chave da atividade solar geral e tem forte correlação com a emissão de radiação ultravioleta extrema (EUV), que é a principal responsável pela ionização da ionosfera. Valores abaixo de 100 sfu indicam Sol calmo. Entre 100 e 150 sfu a atividade é moderada. Acima de 150 sfu a ionosfera está mais densa e sujeita a maiores erros de refração no sinal GNSS.',
+    lvlFn: f107Lvl, fmtFn: v => String(Math.round(v)), yScale: { min: 0 },
+  },
+  phi60: {
+    name: 'σφ — Índice de Cintilação em Fase (Sigma Phi)', unit: 'radianos', histKey: 'phi60',
+    text: 'O sigma_phi (Phi60) mede flutuações na fase da onda portadora do sinal GNSS num intervalo de 60 segundos, expresso em radianos. Enquanto o S4 detecta variações de potência, o sigma_phi captura variações de fase — ambos podem ocorrer juntos ou separados. Valores abaixo de 0,1 rad são normais. Entre 0,1 e 0,5 rad há degradação das soluções de fase inteira, comprometendo o posicionamento de alta precisão (PPP e RTK). Acima de 0,5 rad o receptor tende a perder o rastreio de fase, inviabilizando aplicações geodésicas.',
+    lvlFn: phi60Lvl, fmtFn: v => v.toFixed(3), yScale: { min: 0, max: 1 },
+  },
+  vtec: {
+    name: 'VTEC — Conteúdo Eletrônico Total Vertical', unit: 'TECU (10¹⁶ elétrons/m²)', histKey: 'vtec',
+    text: 'O VTEC mede a quantidade total de elétrons livres numa coluna vertical da ionosfera, em unidades TECU. É a principal causa do atraso de propagação do sinal GNSS: cada TECU corresponde a cerca de 16 cm de erro em L1 para receptores de uma frequência. Valores abaixo de 20 TECU indicam ionosfera tranquila. Entre 20 e 60 TECU o erro de posicionamento cresce e gradientes espaciais podem afetar correções diferenciais. Acima de 60 TECU (comum em máximos solares e tempestades) o erro pode superar 10 m sem correção. Fonte: mapas EMBRACE/INPE derivados da rede GNSS sul-americana — o valor exibido é o observado no mesmo horário do dia mais recente disponível (defasagem de ~2 dias na publicação).',
+    lvlFn: vtecLvl, fmtFn: v => v.toFixed(1), yScale: { min: 0 },
+  },
+  roti: {
+    name: 'ROTI — Índice de Taxa de Variação do TEC', unit: 'TECU/min', histKey: 'roti',
+    text: 'O ROTI mede a rapidez com que o TEC varia, calculado como o desvio-padrão da taxa de variação do TEC em janelas de 5 minutos. É o principal indicador de irregularidades ionosféricas de média escala — as mesmas estruturas que causam cintilação e degradam RTK e PPP. Valores abaixo de 0,25 TECU/min indicam ionosfera homogênea. Entre 0,25 e 0,5 há irregularidades moderadas. Acima de 0,5 TECU/min há forte atividade de bolhas ionosféricas, típica do período pós-pôr do sol na região equatorial brasileira. Calculado pelo app a partir dos dados GNSS de 30 s das estações EMBRACE/INPE (estação mais próxima, mesmo horário do dia mais recente disponível, defasagem de ~2 dias).',
+    lvlFn: rotiLvl, fmtFn: v => v.toFixed(3), yScale: { min: 0 },
+  },
+};
+
+const LEVEL_COLORS = { low: '#2ea043', medium: '#d29922', high: '#f85149', na: '#8b949e' };
+const LEVEL_LABELS = { low: 'BAIXO', medium: 'MÉDIO', high: 'ALTO', na: 'N/A' };
+
+function openDetail(paramId) {
+  const info = PARAM_INFO[paramId];
+  if (!info) return;
+  document.getElementById('detail-param-name').textContent = info.name;
+  document.getElementById('detail-param-unit').textContent = info.unit;
+  document.getElementById('detail-text').textContent       = info.text;
+  renderDetailChart(info);
+  document.getElementById('detail-overlay').classList.add('open');
+  document.getElementById('detail-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail() {
+  document.getElementById('detail-overlay').classList.remove('open');
+  document.getElementById('detail-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+  if (detailChart) { detailChart.destroy(); detailChart = null; }
+}
+
+function renderDetailChart(info) {
+  const h        = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  const emptyEl  = document.getElementById('detail-chart-empty');
+  const wrapEl   = document.getElementById('detail-chart-wrap');
+  const recent   = h.slice(-24);
+  const validVals = recent.map(e => e[info.histKey]).filter(v => v != null);
+
+  if (validVals.length < 2) {
+    emptyEl.style.display = 'block';
+    wrapEl.style.display  = 'none';
+    renderDetailStatus(info, h);
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+  wrapEl.style.display  = 'block';
+
+  const labels = recent.map(e => {
+    const d = new Date(e.ts);
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  });
+  const values = recent.map(e => e[info.histKey] ?? null);
+
+  const lastVal   = validVals[validVals.length - 1];
+  const lvlCls    = info.lvlFn(lastVal);
+  const lineColor = LEVEL_COLORS[lvlCls] || '#ffb700';
+
+  if (detailChart) { detailChart.destroy(); detailChart = null; }
+  const ctx = document.getElementById('detail-chart').getContext('2d');
+  detailChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        borderColor: lineColor,
+        borderWidth: 2,
+        backgroundColor: lineColor + '18',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 2,
+        pointBackgroundColor: lineColor,
+        spanGaps: true,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161b22',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          titleColor: '#e6edf3',
+          bodyColor: '#8b949e',
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#8b949e', font: { size: 10 }, maxRotation: 0, maxTicksLimit: 6 },
+          grid:  { color: 'rgba(255,255,255,.05)' },
+        },
+        y: {
+          ...info.yScale,
+          ticks: { color: '#8b949e', font: { size: 10 } },
+          grid:  { color: 'rgba(255,255,255,.05)' },
+        },
+      },
+    },
+  });
+
+  renderDetailStatus(info, h);
+}
+
+function renderDetailStatus(info, h) {
+  const el = document.getElementById('detail-status');
+  let lastVal = null;
+  if (h && h.length) {
+    for (let i = h.length - 1; i >= 0; i--) {
+      if (h[i][info.histKey] != null) { lastVal = h[i][info.histKey]; break; }
+    }
+  }
+  if (lastVal == null) {
+    el.textContent = 'Valor atual: — (sem dados para esta localização)';
+    el.style.color = 'var(--dim)';
+    return;
+  }
+  const lvlCls = info.lvlFn(lastVal);
+  el.textContent = `Valor atual: ${info.fmtFn(lastVal)} — Nível: ${LEVEL_LABELS[lvlCls] || 'N/A'}`;
+  el.style.color = LEVEL_COLORS[lvlCls] || 'var(--dim)';
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+const LEVEL_CACHE_KEY = 'clima_solar_last_level';
+
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+}
+
+async function notifyRiskChange(newLevel) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const labels = { low: 'BAIXO', medium: 'MÉDIO', high: 'ALTO' };
+  const label  = labels[newLevel] || newLevel.toUpperCase();
+  const title  = '⚠️ Clima Solar';
+  const opts   = {
+    body:  `Risco mudou para ${label} na sua região`,
+    icon:  './icons/icon-192.png',
+    badge: './icons/icon-192.png',
+    tag:   'risco-mudou',          // substitui notificação anterior se ainda visível
+    renotify: true,
+  };
+
+  try {
+    // Preferencialmente via Service Worker (funciona em PWA Android)
+    const reg = await navigator.serviceWorker.ready;
+    reg.showNotification(title, opts);
+  } catch {
+    new Notification(title, opts);
+  }
+}
+
+function checkRiskChange(newLevel) {
+  const prev = localStorage.getItem(LEVEL_CACHE_KEY);
+  if (prev && prev !== newLevel) {
+    notifyRiskChange(newLevel);
+  }
+  localStorage.setItem(LEVEL_CACHE_KEY, newLevel);
+}
+
+// ── Map ───────────────────────────────────────────────────────────────────────
+let leafletMap  = null;
+let mapMarker   = null;
+let heatLayer   = null;
+let heatVisible = true;
+
+function initMap(lat, lon) {
+  const wrap = document.getElementById('map-wrap');
+  wrap.style.display = 'block';
+
+  if (leafletMap) {
+    leafletMap.setView([lat, lon], 6);
+    mapMarker.setLatLng([lat, lon]);
+    return;
+  }
+
+  leafletMap = L.map('map', { zoomControl: true, attributionControl: true })
+    .setView([lat, lon], 6);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' +
+      ' &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19,
+  }).addTo(leafletMap);
+
+  const markerHtml =
+    '<div style="width:16px;height:16px;border-radius:50%;' +
+    'background:#58a6ff;border:2.5px solid #fff;' +
+    'box-shadow:0 0 10px rgba(88,166,255,.7)"></div>';
+
+  const icon = L.divIcon({
+    className: '',
+    html: markerHtml,
+    iconSize:   [16, 16],
+    iconAnchor: [8, 8],
+  });
+
+  mapMarker = L.marker([lat, lon], { icon }).addTo(leafletMap);
+
+  // Garante tamanho correto após o elemento ficar visível
+  setTimeout(() => leafletMap.invalidateSize(), 80);
+}
+
+function scoreToColor(score) {
+  if (score === null || score === undefined)
+                         return { color: '#888888', opacity: 0.10 };
+  if (score < 0.15)      return { color: '#00e676', opacity: 0.13 };
+  if (score < 0.30)      return { color: '#00e676', opacity: 0.22 };
+  if (score < 0.45)      return { color: '#ffcc00', opacity: 0.28 };
+  if (score < 0.60)      return { color: '#ff8800', opacity: 0.35 };
+  if (score < 0.75)      return { color: '#ff4400', opacity: 0.42 };
+  return                        { color: '#ff0000', opacity: 0.50 };
+}
+
+async function fetchHeatmap() {
+  if (!leafletMap) return;
+  try {
+    const res = await fetch(`${API}/heatmap`, { signal: AbortSignal.timeout(30000) });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.points || !data.points.length) return;
+
+    // Remove camada anterior
+    if (heatLayer) leafletMap.removeLayer(heatLayer);
+
+    const half = 0.25; // metade de 0.5° (grau de resolução visual)
+    const rects = data.points.map(p => {
+      const { color, opacity } = p.s4 === null
+        ? { color: '#888888', opacity: 0.10 }
+        : scoreToColor(p.score);
+      return L.rectangle(
+        [[p.lat - half, p.lon - half], [p.lat + half, p.lon + half]],
+        { stroke: false, fillColor: color, fillOpacity: opacity }
+      );
+    });
+
+    heatLayer = L.layerGroup(rects);
+    if (heatVisible) heatLayer.addTo(leafletMap);
+  } catch (e) {
+    console.warn('Heatmap fetch failed:', e);
+  }
+}
+
+function toggleHeatmap() {
+  if (!leafletMap) return;
+  heatVisible = !heatVisible;
+  const btn = document.getElementById('heat-toggle');
+  if (heatVisible) {
+    if (heatLayer) heatLayer.addTo(leafletMap);
+    if (btn) { btn.textContent = '🌡 Heatmap'; btn.style.color = '#e6edf3'; }
+  } else {
+    if (heatLayer) leafletMap.removeLayer(heatLayer);
+    if (btn) { btn.textContent = '○ Heatmap'; btn.style.color = '#8b949e'; }
+  }
 }
 
 // ── Service Worker ────────────────────────────────────────────────────────────

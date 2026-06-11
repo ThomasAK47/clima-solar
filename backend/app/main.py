@@ -15,10 +15,18 @@ from app.collectors.embrace import (
     fetch_embrace_matrices,
     interpolate_embrace,
 )
+from app.collectors.embrace_tec import (
+    RotiData,
+    VtecMatrix,
+    fetch_roti_stations,
+    fetch_vtec_matrix,
+    interpolate_roti,
+    interpolate_vtec,
+)
 from app.collectors.gfz import fetch_dst
 from app.collectors.noaa import fetch_f107, fetch_kp
 from app.core.risk_engine import compute_risk, point_score
-from app.models.space_weather import SpaceWeatherSnapshot
+from app.models.space_weather import EmbraceData, SpaceWeatherSnapshot
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -35,15 +43,18 @@ log = logging.getLogger(__name__)
 # ── In-memory cache ───────────────────────────────────────────────────────────
 _cache: SpaceWeatherSnapshot | None = None
 _embrace: EmbraceMatrices | None = None
+_vtec: VtecMatrix | None = None
+_roti: RotiData | None = None
 _heatmap_cache: dict | None = None          # {data: ..., cached_at: datetime}
-_REFRESH_INTERVAL = 15 * 60  # seconds
+_REFRESH_INTERVAL = 15 * 60       # seconds
+_ROTI_REFRESH_INTERVAL = 6 * 3600  # GTEX uploads are daily — re-check every 6 h
 
 
 async def _refresh_loop():
     """Background task: refresh all external data every 15 minutes."""
     async with httpx.AsyncClient() as client:
         while True:
-            global _cache, _embrace
+            global _cache, _embrace, _vtec, _roti
 
             # ── Geomagnetic / solar indices (NOAA + Kyoto) ────────────────────
             snapshot = SpaceWeatherSnapshot(fetched_at=datetime.now(timezone.utc))
@@ -81,6 +92,30 @@ async def _refresh_loop():
                 log.warning("EMBRACE fetch failed (%s): %s", type(exc).__name__, exc, exc_info=True)
                 if snapshot.errors is not None:
                     snapshot.errors.append(f"embrace [{type(exc).__name__}]: {exc}")
+
+            # ── EMBRACE VTEC map (AMAP, time-of-day matched) ──────────────────
+            try:
+                vtec = await fetch_vtec_matrix(client)
+                if vtec.matrix is not None or _vtec is None:
+                    _vtec = vtec
+            except Exception as exc:
+                log.warning("VTEC fetch failed (%s): %s", type(exc).__name__, exc, exc_info=True)
+                snapshot.errors.append(f"vtec [{type(exc).__name__}]: {exc}")
+
+            # ── EMBRACE ROTI stations (GTEX, daily upload — refresh every 6 h) ─
+            now = datetime.now(timezone.utc)
+            roti_stale = (
+                _roti is None
+                or (now - _roti.fetched_at).total_seconds() > _ROTI_REFRESH_INTERVAL
+            )
+            if roti_stale:
+                try:
+                    roti = await fetch_roti_stations(client)
+                    if roti.stations or _roti is None:
+                        _roti = roti
+                except Exception as exc:
+                    log.warning("ROTI fetch failed (%s): %s", type(exc).__name__, exc, exc_info=True)
+                    snapshot.errors.append(f"roti [{type(exc).__name__}]: {exc}")
 
             await asyncio.sleep(_REFRESH_INTERVAL)
 
@@ -132,10 +167,23 @@ async def get_status(
 
     embrace = interpolate_embrace(_embrace, lat, lon) if _embrace else None
 
+    # VTEC / ROTI (time-of-day matched products — see embrace_tec.py)
+    vtec_val = interpolate_vtec(_vtec, lat, lon)
+    roti_val = interpolate_roti(_roti, lat, lon)
+    if embrace is None and (vtec_val is not None or roti_val is not None):
+        embrace = EmbraceData(
+            timestamp=datetime.now(timezone.utc), lat=lat, lon=lon,
+        )
+    if embrace is not None:
+        embrace.vtec_tecu = vtec_val
+        embrace.roti_tecu_min = roti_val
+
     if embrace:
-        log.debug("   EMBRACE interpolated: S4=%s phi60=%s",
-                  f"{embrace.s4:.5f}"       if embrace.s4       is not None else "null (no data at pixel)",
-                  f"{embrace.phi60_rad:.5f}" if embrace.phi60_rad is not None else "null (no data at pixel)")
+        log.debug("   EMBRACE interpolated: S4=%s phi60=%s VTEC=%s ROTI=%s",
+                  f"{embrace.s4:.5f}"       if embrace.s4       is not None else "null",
+                  f"{embrace.phi60_rad:.5f}" if embrace.phi60_rad is not None else "null",
+                  f"{vtec_val:.2f}"          if vtec_val          is not None else "null",
+                  f"{roti_val:.4f}"          if roti_val          is not None else "null")
     else:
         log.debug("   EMBRACE interpolated: None (outside coverage or matrices absent)")
 
@@ -150,12 +198,25 @@ async def get_status(
         _cache.f107.f107_sfu   if _cache.f107 else None,
         embrace.s4             if embrace     else None,
         embrace.phi60_rad      if embrace     else None,
+        roti_val,
+        vtec_val,
     )
 
     embrace_age_min = None
     if _embrace and _embrace.s4_map_time:
         embrace_age_min = round(
             (datetime.now(timezone.utc) - _embrace.s4_map_time).total_seconds() / 60
+        )
+
+    vtec_age_min = None
+    if _vtec and _vtec.map_time:
+        vtec_age_min = round(
+            (datetime.now(timezone.utc) - _vtec.map_time).total_seconds() / 60
+        )
+    roti_age_min = None
+    if _roti and _roti.day:
+        roti_age_min = round(
+            (datetime.now(timezone.utc) - _roti.day).total_seconds() / 60
         )
 
     return {
@@ -180,12 +241,16 @@ async def get_status(
             "f107_sfu":  _cache.f107.f107_sfu    if _cache.f107 else None,
             "s4":        embrace.s4              if embrace     else None,
             "phi60_rad": embrace.phi60_rad       if embrace     else None,
+            "vtec_tecu":     vtec_val,
+            "roti_tecu_min": roti_val,
         },
         "data_age": {
             "geomagnetic_min": round(
                 (datetime.now(timezone.utc) - _cache.fetched_at).total_seconds() / 60
             ),
             "embrace_map_min": embrace_age_min,
+            "vtec_map_min":    vtec_age_min,
+            "roti_day_min":    roti_age_min,
         },
         "errors": _cache.errors,
     }
@@ -225,18 +290,22 @@ async def get_heatmap():
     dst_raw  = _cache.dst.dst_nt      if _cache.dst  else None
     f107_raw = _cache.f107.f107_sfu   if _cache.f107 else None
 
-    grid = brazil_heatmap_grid(_embrace)   # ~900 points, fast CPU loop
+    grid = brazil_heatmap_grid(_embrace)   # ~7,500 points, fast CPU loop
 
     points = []
     for pt in grid:
+        vtec_pt = interpolate_vtec(_vtec, pt["lat"], pt["lon"])
+        roti_pt = interpolate_roti(_roti, pt["lat"], pt["lon"], now)
         score = point_score(
             kp_raw, dst_raw, f107_raw,
             s4_raw=pt["s4"], phi60_raw=pt["phi60"],
+            roti_raw=roti_pt, vtec_raw=vtec_pt,
         )
         points.append({
             "lat":   pt["lat"],
             "lon":   pt["lon"],
             "s4":    round(pt["s4"], 4) if pt["s4"] is not None else None,
+            "vtec":  round(vtec_pt, 1)  if vtec_pt  is not None else None,
             "score": score,
         })
 

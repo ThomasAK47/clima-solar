@@ -32,8 +32,8 @@ class EmbraceData:
     lon: float
     s4: Optional[float] = None         # amplitude scintillation index (dimensionless)
     phi60_rad: Optional[float] = None  # phase scintillation sigma_phi (radians)
-    roti_tecu_min: Optional[float] = None  # not available in map product
-    vtec_tecu: Optional[float] = None      # not available in map product
+    roti_tecu_min: Optional[float] = None  # GTEX stations, time-of-day matched (TECU/min)
+    vtec_tecu: Optional[float] = None      # AMAP map, time-of-day matched (TECU)
     source: str = "EMBRACE/INPE"
 
 

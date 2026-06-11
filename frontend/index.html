@@ -738,7 +738,7 @@
       <div class="score-track"><div id="score-fill"></div></div>
       <div id="score-text">Score composto: —</div>
       <div style="margin-top:8px;font-size:10px;color:#666;text-align:center;line-height:1.4;">
-        ⏱ Dados ionosféricos (S4, σφ) com até 33 min de defasagem · Kp, Dst e F10.7 em tempo real
+        ⏱ S4 e σφ com até 33 min de defasagem · VTEC e ROTI do mesmo horário de ~2 dias atrás · Kp, Dst e F10.7 em tempo real
       </div>
     </div>
   </div>
@@ -782,12 +782,30 @@
       <span class="ind-arrow">›</span>
     </div>
 
-    <div class="ind-card full-row" onclick="openDetail('phi60')">
+    <div class="ind-card" onclick="openDetail('phi60')">
       <span class="trend stable" id="trend-phi60">→</span>
       <div class="ind-name">Sigma_phi — Fase</div>
       <div class="ind-value" id="val-phi60">—</div>
       <div class="ind-unit">radianos</div>
       <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-phi60" style="width:0%"></div></div>
+      <span class="ind-arrow">›</span>
+    </div>
+
+    <div class="ind-card" onclick="openDetail('vtec')">
+      <span class="trend stable" id="trend-vtec">→</span>
+      <div class="ind-name">VTEC</div>
+      <div class="ind-value" id="val-vtec">—</div>
+      <div class="ind-unit">TECU</div>
+      <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-vtec" style="width:0%"></div></div>
+      <span class="ind-arrow">›</span>
+    </div>
+
+    <div class="ind-card full-row" onclick="openDetail('roti')">
+      <span class="trend stable" id="trend-roti">→</span>
+      <div class="ind-name">ROTI — Irregularidades</div>
+      <div class="ind-value" id="val-roti">—</div>
+      <div class="ind-unit">TECU/min</div>
+      <div class="ind-bar-track"><div class="ind-bar-fill na" id="bar-roti" style="width:0%"></div></div>
       <span class="ind-arrow">›</span>
     </div>
 
@@ -854,8 +872,9 @@
       <p style="font-size:11px;color:#aaa;line-height:1.6;margin:0;">
         ⚠️ <strong style="color:#ccc;">Aviso de uso</strong><br>
         O Clima Solar é uma ferramenta de apoio à decisão baseada em dados públicos de clima espacial.
-        Não substitui análise técnica especializada. Os índices apresentados possuem defasagem de até
-        33 minutos para dados ionosféricos. Recomenda-se validação com profissional qualificado para
+        Não substitui análise técnica especializada. S4 e σφ possuem defasagem de até 33 minutos;
+        VTEC e ROTI são estimativas baseadas no mesmo horário do dia mais recente publicado pelo
+        EMBRACE (~2 dias). Recomenda-se validação com profissional qualificado para
         operações críticas de GNSS.
       </p>
     </div>
@@ -875,6 +894,10 @@
     <div class="src-row">
       <span class="src-params">S4 · σφ</span>
       <span class="src-name">EMBRACE/INPE — Monitoramento Brasileiro do Clima Espacial</span>
+    </div>
+    <div class="src-row">
+      <span class="src-params">VTEC · ROTI</span>
+      <span class="src-name">EMBRACE/INPE — mapas TEC (AMAP) e rede GNSS 30 s (GTEX), valores do mesmo horário do dia mais recente publicado (~2 dias)</span>
     </div>
   </div>
 </div>
@@ -1093,17 +1116,21 @@ function render(data, offline = false) {
 
   // ── Indicator cards + trend
   const phi60 = raw.phi60_rad ?? null;
-  saveTrend({ kp: raw.kp, dst: raw.dst_nt, s4: raw.s4, f107: raw.f107_sfu, phi60 });
+  const vtec  = raw.vtec_tecu ?? null;
+  const roti  = raw.roti_tecu_min ?? null;
+  saveTrend({ kp: raw.kp, dst: raw.dst_nt, s4: raw.s4, f107: raw.f107_sfu, phi60, vtec, roti });
   setInd('kp',    raw.kp,       v => v.toFixed(1),                            kpLvl(raw.kp),      barW('kp',    raw.kp));
   setInd('dst',   raw.dst_nt,   v => (v >= 0 ? '+' : '') + Math.round(v),     dstLvl(raw.dst_nt), barW('dst',   raw.dst_nt));
   setInd('s4',    raw.s4,       v => v.toFixed(3),                             s4Lvl(raw.s4),      barW('s4',    raw.s4));
   setInd('f107',  raw.f107_sfu, v => String(Math.round(v)),                    f107Lvl(raw.f107_sfu), barW('f107', raw.f107_sfu));
   setInd('phi60', phi60,        v => v.toFixed(3),                             phi60Lvl(phi60),    barW('phi60', phi60));
-  ['kp','dst','s4','f107','phi60'].forEach(k => renderTrend(k));
+  setInd('vtec',  vtec,         v => v.toFixed(1),                             vtecLvl(vtec),      barW('vtec',  vtec));
+  setInd('roti',  roti,         v => v.toFixed(3),                             rotiLvl(roti),      barW('roti',  roti));
+  ['kp','dst','s4','f107','phi60','vtec','roti'].forEach(k => renderTrend(k));
 
   // ── Histórico (dados salvos no localStorage para uso nos modais de detalhe)
   saveHistory({ ts: new Date().toISOString(), score, kp: raw.kp, dst: raw.dst_nt,
-                s4: raw.s4, f107: raw.f107_sfu, phi60 });
+                s4: raw.s4, f107: raw.f107_sfu, phi60, vtec, roti });
 
   // ── Data age note
   const noteEl = document.getElementById('data-note');
@@ -1114,6 +1141,10 @@ function render(data, offline = false) {
   }
   if (raw.s4 == null) {
     notes.push('S4 indisponível para esta localização (cobertura da América do Sul)');
+  }
+  if (age.vtec_map_min != null && (raw.vtec_tecu != null || raw.roti_tecu_min != null)) {
+    const d = Math.round(age.vtec_map_min / 1440);
+    notes.push(`🗺 VTEC/ROTI: valor observado no mesmo horário há ${d} dia${d > 1 ? 's' : ''} (EMBRACE publica com defasagem)`);
   }
   if (notes.length) {
     noteEl.textContent = notes.join(' · ');
@@ -1151,6 +1182,8 @@ function dstLvl(v)   { return v == null ? 'na' : v > -30 ? 'low' : v > -100? 'me
 function s4Lvl(v)    { return v == null ? 'na' : v < 0.3 ? 'low' : v < 0.6 ? 'medium' : 'high'; }
 function f107Lvl(v)  { return v == null ? 'na' : v < 100 ? 'low' : v < 150 ? 'medium' : 'high'; }
 function phi60Lvl(v) { return v == null ? 'na' : v < 0.1 ? 'low' : v < 0.5 ? 'medium' : 'high'; }
+function vtecLvl(v)  { return v == null ? 'na' : v < 20  ? 'low' : v < 60  ? 'medium' : 'high'; }
+function rotiLvl(v)  { return v == null ? 'na' : v < 0.25? 'low' : v < 0.5 ? 'medium' : 'high'; }
 
 // ── Bar widths ────────────────────────────────────────────────────────────────
 function barW(key, v) {
@@ -1161,6 +1194,8 @@ function barW(key, v) {
     case 's4':    return Math.min(v * 100, 100);
     case 'f107':  return Math.min(v / 250 * 100, 100);
     case 'phi60': return Math.min(v / 1.0 * 100, 100);
+    case 'vtec':  return Math.min(v / 100 * 100, 100);
+    case 'roti':  return Math.min(v / 1.0 * 100, 100);
   }
   return 0;
 }
@@ -1240,6 +1275,8 @@ function renderHistory() {
     dst:   {},                   // auto — valores negativos
     s4:    { min: 0, max: 1 },
     phi60: { min: 0, max: 1 },
+    vtec:  { min: 0 },
+    roti:  { min: 0 },
   };
   const yOpts = yScales[histTab] || {};
 
@@ -1367,6 +1404,16 @@ const PARAM_INFO = {
     name: 'σφ — Índice de Cintilação em Fase (Sigma Phi)', unit: 'radianos', histKey: 'phi60',
     text: 'O sigma_phi (Phi60) mede flutuações na fase da onda portadora do sinal GNSS num intervalo de 60 segundos, expresso em radianos. Enquanto o S4 detecta variações de potência, o sigma_phi captura variações de fase — ambos podem ocorrer juntos ou separados. Valores abaixo de 0,1 rad são normais. Entre 0,1 e 0,5 rad há degradação das soluções de fase inteira, comprometendo o posicionamento de alta precisão (PPP e RTK). Acima de 0,5 rad o receptor tende a perder o rastreio de fase, inviabilizando aplicações geodésicas.',
     lvlFn: phi60Lvl, fmtFn: v => v.toFixed(3), yScale: { min: 0, max: 1 },
+  },
+  vtec: {
+    name: 'VTEC — Conteúdo Eletrônico Total Vertical', unit: 'TECU (10¹⁶ elétrons/m²)', histKey: 'vtec',
+    text: 'O VTEC mede a quantidade total de elétrons livres numa coluna vertical da ionosfera, em unidades TECU. É a principal causa do atraso de propagação do sinal GNSS: cada TECU corresponde a cerca de 16 cm de erro em L1 para receptores de uma frequência. Valores abaixo de 20 TECU indicam ionosfera tranquila. Entre 20 e 60 TECU o erro de posicionamento cresce e gradientes espaciais podem afetar correções diferenciais. Acima de 60 TECU (comum em máximos solares e tempestades) o erro pode superar 10 m sem correção. Fonte: mapas EMBRACE/INPE derivados da rede GNSS sul-americana — o valor exibido é o observado no mesmo horário do dia mais recente disponível (defasagem de ~2 dias na publicação).',
+    lvlFn: vtecLvl, fmtFn: v => v.toFixed(1), yScale: { min: 0 },
+  },
+  roti: {
+    name: 'ROTI — Índice de Taxa de Variação do TEC', unit: 'TECU/min', histKey: 'roti',
+    text: 'O ROTI mede a rapidez com que o TEC varia, calculado como o desvio-padrão da taxa de variação do TEC em janelas de 5 minutos. É o principal indicador de irregularidades ionosféricas de média escala — as mesmas estruturas que causam cintilação e degradam RTK e PPP. Valores abaixo de 0,25 TECU/min indicam ionosfera homogênea. Entre 0,25 e 0,5 há irregularidades moderadas. Acima de 0,5 TECU/min há forte atividade de bolhas ionosféricas, típica do período pós-pôr do sol na região equatorial brasileira. Calculado pelo app a partir dos dados GNSS de 30 s das estações EMBRACE/INPE (estação mais próxima, mesmo horário do dia mais recente disponível, defasagem de ~2 dias).',
+    lvlFn: rotiLvl, fmtFn: v => v.toFixed(3), yScale: { min: 0 },
   },
 };
 

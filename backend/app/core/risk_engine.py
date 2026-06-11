@@ -71,9 +71,11 @@ def _phi60_score(phi60: float) -> float:
     return min(0.6 + (phi60 - 0.5) / 0.5 * 0.4, 1.0)
 
 def _roti_score(roti: float) -> float:
-    if roti < 0.5: return roti / 0.5 * 0.3
-    if roti < 1.5: return 0.3 + (roti - 0.5) / 1.0 * 0.3
-    return min(0.6 + (roti - 1.5) / 1.5 * 0.4, 1.0)
+    # Thresholds per regional literature (Carmo et al. 2021, IGS ROTI maps):
+    # < 0.25 quiet, 0.25-0.5 moderate irregularities, > 0.5 strong
+    if roti < 0.25: return roti / 0.25 * 0.3
+    if roti < 0.5:  return 0.3 + (roti - 0.25) / 0.25 * 0.3
+    return min(0.6 + (roti - 0.5) / 0.5 * 0.4, 1.0)
 
 def _vtec_score(vtec: float) -> float:
     if vtec < 20: return vtec / 20 * 0.3
@@ -172,10 +174,12 @@ def point_score(
     f107_raw: Optional[float],
     s4_raw:   Optional[float] = None,
     phi60_raw: Optional[float] = None,
+    roti_raw: Optional[float] = None,
+    vtec_raw: Optional[float] = None,
 ) -> float:
     """
     Lightweight composite score for a single grid point — no logging.
-    Used by the /heatmap endpoint to compute ~900 scores without flooding logs.
+    Used by the /heatmap endpoint to compute ~7,500 scores without flooding logs.
     Same weight redistribution logic as compute_risk().
     """
     kp_s   = _kp_score(kp_raw)       if kp_raw   is not None else 0.5
@@ -183,10 +187,14 @@ def point_score(
     f107_s = _f107_score(f107_raw)   if f107_raw is not None else 0.5
     s4_s   = _s4_score(s4_raw)       if s4_raw   is not None else None
     phi60_s= _phi60_score(phi60_raw) if phi60_raw is not None else None
+    roti_s = _roti_score(roti_raw)   if roti_raw is not None else None
+    vtec_s = _vtec_score(vtec_raw)   if vtec_raw is not None else None
 
     available: dict[str, float] = {"kp": kp_s, "dst": dst_s, "f107": f107_s}
     if s4_s    is not None: available["s4"]    = s4_s
     if phi60_s is not None: available["phi60"] = phi60_s
+    if roti_s  is not None: available["roti"]  = roti_s
+    if vtec_s  is not None: available["vtec"]  = vtec_s
 
     total_w = sum(_WEIGHTS[k] for k in available)
     if total_w <= 0:
